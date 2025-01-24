@@ -123,7 +123,13 @@ public class Model extends Observable {
         setChanged();
     }
 
-    private record resultOfMove(int scc, boolean isChanged) {
+    private class resultOfMove {
+        int sco;
+        boolean isChanged;
+        resultOfMove(int a, boolean b) {
+            sco = a;
+            isChanged = b;
+        }
     }
     private resultOfMove moveUp() {
         int scc = 0;
@@ -180,7 +186,7 @@ public class Model extends Observable {
         System.out.println(board);
         board.setViewingPerspective(side);
         resultOfMove res = moveUp();
-        score += res.scc;
+        score += res.sco;
         changed = res.isChanged;
         board.setViewingPerspective(Side.NORTH);
         System.out.println(board);
