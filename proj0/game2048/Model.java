@@ -123,6 +123,39 @@ public class Model extends Observable {
         setChanged();
     }
 
+    private record resultOfMove(int scc, boolean isChanged) {
+    }
+    private resultOfMove moveUp() {
+        int scc = 0;
+        boolean changed = false;
+        for (int x = 0; x < board.size(); x += 1) {
+            int index = 0;
+            int mergeId = -1;
+            for (int j = board.size() - 1; j >= 0; --j) {
+                if (board.tile(x, j) != null) {
+                    int dMerge;
+                    Tile tmp = board.tile(x, j);
+                    if (index > 0 && mergeId + 2 <= index && tmp.value() == board.tile(x, board.size() - index).value()) {
+                        dMerge = 1;
+                        mergeId = index - 1;
+                        scc += tmp.value() * 2;
+                    } else {
+                        dMerge = 0;
+                    }
+                    int y2 = board.size() - index - 1 + dMerge;
+                    if (y2 != j) {
+                        board.move(x, y2, tmp);
+                        changed = true;
+                    }
+                    if (dMerge == 0) {
+                        index += 1;
+                    }
+                }
+            }
+        }
+        return new resultOfMove(scc, changed);
+    }
+
     /**
      * Tilt the board toward SIDE. Return true iff this changes the board.
      * <p>
@@ -143,6 +176,14 @@ public class Model extends Observable {
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
+
+        System.out.println(board);
+        board.setViewingPerspective(side);
+        resultOfMove res = moveUp();
+        score += res.scc;
+        changed = res.isChanged;
+        board.setViewingPerspective(Side.NORTH);
+        System.out.println(board);
 
         checkGameOver();
         if (changed) {
@@ -171,6 +212,9 @@ public class Model extends Observable {
      * Empty spaces are stored as null.
      */
     public static boolean emptySpaceExists(Board b) {
+        if (b == null) {
+            throw new IllegalArgumentException("board should not be null");
+        }
         for (Tile tmp : b) {
             if (tmp == null) {
                 return true;
@@ -185,6 +229,9 @@ public class Model extends Observable {
      * given a Tile object t, we get its value with t.value().
      */
     public static boolean maxTileExists(Board b) {
+        if (b == null) {
+            throw new IllegalArgumentException("board should not be null");
+        }
         for (Tile tmp : b) {
             if (tmp != null && tmp.value() == MAX_PIECE) {
                 return true;
@@ -264,6 +311,9 @@ public class Model extends Observable {
         return toString().hashCode();
     }
 
+    /**
+     * Used in watch around the tile
+     */
     static final private int[][] moves = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
 }
 
