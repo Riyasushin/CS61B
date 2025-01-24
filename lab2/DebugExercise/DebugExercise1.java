@@ -5,9 +5,9 @@ package DebugExercise;
  * feature work.
  */
 public class DebugExercise1 {
-    public static double divideThenRound(int top, int bottom) {
+    public static int divideThenRound(int top, int bottom) {
         double quotient = (double)top / bottom;
-        double result = Math.round(quotient);
+        int result = (int) Math.round(quotient);
         return result;
     }
 
