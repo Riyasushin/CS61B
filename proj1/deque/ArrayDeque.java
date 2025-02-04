@@ -23,6 +23,13 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
         head = CAPACITY - 1;
         tail = 0;
     }
+    public ArrayDeque(int capacity) {
+        CAPACITY = capacity;
+        items = (T[]) new Object[CAPACITY];
+        size = 0;
+        head = CAPACITY - 1;
+        tail = 0;
+    }
 
     private void resize(int newCapacity) {
         T[] newItems = (T[]) new Object[newCapacity];
