@@ -24,21 +24,21 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
         tail = 0;
     }
 
-    private void resize(int new_capacity) {
-        T[] new_items = (T[]) new Object[new_capacity];
+    private void resize(int newCapacity) {
+        T[] newItems = (T[]) new Object[newCapacity];
         int pointer = (head + 1) % CAPACITY;
         int index = 0;
         while (pointer != tail) {
-            new_items[index] = items[pointer];
+            newItems[index] = items[pointer];
             pointer = (pointer + 1) % CAPACITY;
             index += 1;
         }
 
-        head = new_capacity - 1;
+        head = newCapacity - 1;
         tail = index;
 
-        items = new_items;
-        CAPACITY = new_capacity;
+        items = newItems;
+        CAPACITY = newCapacity;
     }
 
     public void addFirst(T x) {

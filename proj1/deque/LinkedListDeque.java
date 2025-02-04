@@ -6,21 +6,21 @@ import java.util.NoSuchElementException;
 public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
 
     private class Node {
-        public T item;
-        public Node next;
-        public Node prev;
+        private T item;
+        private Node next;
+        private Node prev;
 
         /**
          * New node, with no init.
          */
-        public Node() {
+        Node() {
         }
 
         /**
          * New node, with x as the data
          * @param x data of this node
          */
-        public Node(T x) {
+        Node(T x) {
             item = x;
         }
     }
@@ -109,7 +109,6 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
      */
     private T getRecur(int index, Node pointer) {
         if (pointer == sentinel) {
-            /// TODO: 美化，给出异常
             return null;
         } else {
             if (index == 0) {
