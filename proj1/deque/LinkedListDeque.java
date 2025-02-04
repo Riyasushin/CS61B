@@ -186,6 +186,12 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
         return sentinel.next;
     }
 
+    /**
+     *
+     * @param b Another LLD.
+     * @return  true if this and b has same values
+     *          false if difference is found
+     */
     @Override
     public boolean equals(Object b) {
         if (b == null) {
@@ -202,7 +208,7 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
         LinkedListDeque<T> other = (LinkedListDeque<T>) b;
         if (size() == other.size()) {
             for (int i = 0, len = size(); i < len; ++i) {
-                if (get(i).equals(other.get(i))) {
+                if (!get(i).equals(other.get(i))) {
                     return false;
                 }
             }
