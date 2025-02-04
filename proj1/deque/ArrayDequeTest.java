@@ -280,4 +280,18 @@ public class ArrayDequeTest{
             System.out.printf("%12d %12.2f %12d %12.2f\n", N, time, opCount, timePerOp);
         }
     }
+
+    @Test
+    public void testGet() {
+        ArrayDeque<Integer> ad = new ArrayDeque<>();
+        ad.addFirst(0);
+        ad.addFirst(1);
+        ad.addLast(2);
+        ad.addFirst(3);
+        ad.addLast(4);
+        ad.addLast(5);
+        ad.addFirst(6);
+
+        assertEquals("Should have the same value", 5, ad.removeLast(), 0);
+    }
 }

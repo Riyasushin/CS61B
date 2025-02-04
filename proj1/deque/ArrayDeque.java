@@ -23,6 +23,7 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
         head = CAPACITY - 1;
         tail = 0;
     }
+
     public ArrayDeque(int capacity) {
         CAPACITY = capacity;
         items = (T[]) new Object[CAPACITY];
@@ -49,16 +50,7 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
     }
 
     public void addFirst(T x) {
-        if (size() + 1 == CAPACITY) {
-            resize(CAPACITY * 2);
-        }
 
-        size += 1;
-        items[head] = x;
-        head = (head - 1 + CAPACITY) % CAPACITY;
-    }
-
-    public void addLast(T x) {
         if (size() + 2 == CAPACITY) {
             resize(CAPACITY * 2);
         }
@@ -68,12 +60,24 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
         tail = (tail + 1 + CAPACITY) % CAPACITY;
     }
 
+    public void addLast(T x) {
+        if (size() + 1 == CAPACITY) {
+            resize(CAPACITY * 2);
+        }
+
+        size += 1;
+        items[head] = x;
+        head = (head - 1 + CAPACITY) % CAPACITY;
+
+    }
+
     public T removeFirst() {
         if (size() == 0) {
             return null;
         }
-        head = (head + 1) % CAPACITY;
-        T data = items[head];
+        tail = (tail - 1 + CAPACITY) % CAPACITY;
+        /// 忘记改了，cv的锅
+        T data = items[tail];
         size -= 1;
 
         if (CAPACITY > 25 && ((double) CAPACITY * MIN_USAGE) > size()) {
@@ -85,12 +89,13 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
     }
 
     public T removeLast() {
+
+
         if (size() == 0) {
             return null;
         }
-        tail = (tail - 1 + CAPACITY) % CAPACITY;
-        /// 忘记改了，cv的锅
-        T data = items[tail];
+        head = (head + 1) % CAPACITY;
+        T data = items[head];
         size -= 1;
 
         if (CAPACITY > 25 && ((double) CAPACITY * MIN_USAGE) > size()) {
@@ -156,7 +161,7 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
         System.out.println(toString());
     }
 
-    public ArrayDeque<T> of(T...args) {
+    public ArrayDeque<T> of(T... args) {
         ArrayDeque<T> tmp = new ArrayDeque<>();
         for (T item : args) {
             tmp.addLast(item);

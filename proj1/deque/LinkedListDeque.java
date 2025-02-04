@@ -205,7 +205,8 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
         if (!(b instanceof LinkedListDeque<?>)) {
             return false;
         }
-        LinkedListDeque<T> other = (LinkedListDeque<T>) b;
+        /// should be Deque, as compare LLD with AD
+        Deque<T> other = (Deque<T>) b;
         if (size() == other.size()) {
             for (int i = 0, len = size(); i < len; ++i) {
                 if (!get(i).equals(other.get(i))) {
