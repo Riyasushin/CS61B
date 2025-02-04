@@ -202,7 +202,7 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
         if (this == b) {
             return true;
         }
-        if (!(b instanceof LinkedListDeque<?>)) {
+        if (!(b instanceof Deque<?>)) {
             return false;
         }
         /// should be Deque, as compare LLD with AD
@@ -234,4 +234,25 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
         return sb.toString();
     }
 
+    /**
+     * 创建一个包含指定元素的 ArrayDeque 实例。
+     *
+     * @param <T>  元素的类型
+     * @param args 要添加到 ArrayDeque 中的元素
+     * @return 包含指定元素的 ArrayDeque 实例
+     */
+    public static <T> LinkedListDeque<T> of(T... args) {
+        // 创建一个新的 ArrayDeque 实例
+        LinkedListDeque<T> deque = new LinkedListDeque<>();
+
+        // 如果传入的参数不为空，则遍历参数并添加到 deque 中
+        if (args != null) {
+            for (T item : args) {
+                deque.addLast(item);
+            }
+        }
+
+        // 返回填充好元素的 ArrayDeque 实例
+        return deque;
+    }
 }

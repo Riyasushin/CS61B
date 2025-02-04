@@ -51,17 +51,8 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
 
     public void addFirst(T x) {
 
+
         if (size() + 2 == CAPACITY) {
-            resize(CAPACITY * 2);
-        }
-
-        size += 1;
-        items[tail] = x;
-        tail = (tail + 1 + CAPACITY) % CAPACITY;
-    }
-
-    public void addLast(T x) {
-        if (size() + 1 == CAPACITY) {
             resize(CAPACITY * 2);
         }
 
@@ -71,24 +62,17 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
 
     }
 
-    public T removeFirst() {
-        if (size() == 0) {
-            return null;
-        }
-        tail = (tail - 1 + CAPACITY) % CAPACITY;
-        /// 忘记改了，cv的锅
-        T data = items[tail];
-        size -= 1;
-
-        if (CAPACITY > 25 && ((double) CAPACITY * MIN_USAGE) > size()) {
-            int newLen = (int) (CAPACITY * (2 * MIN_USAGE));
-            resize(newLen);
+    public void addLast(T x) {
+        if (size() + 2 == CAPACITY) {
+            resize(CAPACITY * 2);
         }
 
-        return data;
+        size += 1;
+        items[tail] = x;
+        tail = (tail + 1 + CAPACITY) % CAPACITY;
     }
 
-    public T removeLast() {
+    public T removeFirst() {
 
 
         if (size() == 0) {
@@ -104,6 +88,25 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
         }
 
         return data;
+    }
+
+    public T removeLast() {
+
+        if (size() == 0) {
+            return null;
+        }
+        tail = (tail - 1 + CAPACITY) % CAPACITY;
+        /// 忘记改了，cv的锅
+        T data = items[tail];
+        size -= 1;
+
+        if (CAPACITY > 25 && ((double) CAPACITY * MIN_USAGE) > size()) {
+            int newLen = (int) (CAPACITY * (2 * MIN_USAGE));
+            resize(newLen);
+        }
+
+        return data;
+
     }
 
     public T get(int index) {
@@ -157,15 +160,57 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
         return sb.toString();
     }
 
+    @Override
+    public boolean equals(Object b) {
+        if (b == null) {
+            /// 防止之后cast导致NullPointerException
+            return false;
+        }
+        /// 同一地址
+        if (this == b) {
+            return true;
+        }
+        if (!(b instanceof Deque<?>)) {
+            return false;
+        }
+        /// should be Deque, as compare LLD with AD
+        Deque<T> other = (Deque<T>) b;
+        if (size() == other.size()) {
+            for (int i = 0, len = size(); i < len; ++i) {
+                if (!get(i).equals(other.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public void printDeque() {
         System.out.println(toString());
     }
 
-    public ArrayDeque<T> of(T... args) {
-        ArrayDeque<T> tmp = new ArrayDeque<>();
-        for (T item : args) {
-            tmp.addLast(item);
+    /**
+     * 创建一个包含指定元素的 ArrayDeque 实例。
+     *
+     * @param <T>  元素的类型
+     * @param args 要添加到 ArrayDeque 中的元素
+     * @return 包含指定元素的 ArrayDeque 实例
+     */
+    public static <T> ArrayDeque<T> of(T... args) {
+        // 创建一个新的 ArrayDeque 实例
+        ArrayDeque<T> deque = new ArrayDeque<>();
+
+        // 如果传入的参数不为空，则遍历参数并添加到 deque 中
+        if (args != null) {
+            for (T item : args) {
+                deque.addLast(item);
+            }
         }
-        return tmp;
+
+        // 返回填充好元素的 ArrayDeque 实例
+        return deque;
     }
+
 }

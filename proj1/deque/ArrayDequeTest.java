@@ -284,14 +284,42 @@ public class ArrayDequeTest{
     @Test
     public void testGet() {
         ArrayDeque<Integer> ad = new ArrayDeque<>();
+//        11 4 2 0 1 3 9 12
         ad.addFirst(0);
+        ad.printDeque();
         ad.addFirst(1);
+        ad.printDeque();
         ad.addLast(2);
+        ad.printDeque();
         ad.addFirst(3);
+        ad.printDeque();
         ad.addLast(4);
+        ad.printDeque();
         ad.addLast(5);
+        ad.printDeque();
         ad.addFirst(6);
+        ad.printDeque();
+        ad.removeLast();
+        ad.printDeque();
+        ad.removeFirst();
+        ad.printDeque();
+        ad.addFirst(9);
+        ad.printDeque();
+        ad.addFirst(10);
+        ad.printDeque();
+        ad.addLast(11);
+        ad.printDeque();
+        ad.addFirst(12);
+        ad.printDeque();
+        assertEquals("Should have the same value", 11, ad.get(8), 0);
+    }
 
-        assertEquals("Should have the same value", 5, ad.removeLast(), 0);
+    @Test
+    public void testEquals() {
+        ArrayDeque<Integer> ad1 = ArrayDeque.of(1, 2, 3);
+        ArrayDeque<Integer> ad2 = ArrayDeque.of(1, 2, 3);
+        assertTrue(ad1.equals(ad2));
+        LinkedListDeque<Integer> lld = LinkedListDeque.of(1, 2, 3);
+        assertTrue(ad1.equals(lld));
     }
 }
