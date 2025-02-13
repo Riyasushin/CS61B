@@ -26,4 +26,21 @@ public class Repository {
     public static final File GITLET_DIR = join(CWD, ".gitlet");
 
     /* TODO: fill in the rest of this class. */
+    public static boolean hasInited() {
+        return GITLET_DIR.exists();
+    }
+
+    public static boolean init() {
+        if( GITLET_DIR.mkdir()) {
+            /// TODO: branch
+            /// TODO: commit
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean checkFileExist(final String name) {
+        File file4Add = join(CWD, name);
+        return file4Add.exists();
+    }
 }
