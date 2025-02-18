@@ -14,6 +14,10 @@ import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Formatter;
 import java.util.List;
@@ -191,7 +195,7 @@ class Utils {
     /* OTHER FILE UTILITIES */
 
     /** Return the concatentation of FIRST and OTHERS into a File designator,
-     *  analogous to the {@link java.nio.file.Paths.#get(String, String[])}
+     *  analogous to the {@link java.nio.file.Paths . #get(String, String[])}
      *  method. */
     static File join(String first, String... others) {
         return Paths.get(first, others).toFile();
@@ -235,5 +239,19 @@ class Utils {
     static void message(String msg, Object... args) {
         System.out.printf(msg, args);
         System.out.println();
+    }
+
+
+    static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy Z");
+
+    /**
+     *
+     * @param timestamp (long) 时间戳
+     * @return String:格式化后的时间
+     */
+    static String unixTimeFormatter(long timestamp) {
+        Instant ins = Instant.ofEpochMilli(timestamp);
+        ZonedDateTime zonedDateTime = ins.atZone(ZoneId.of("America/Los_Angeles"));
+        return formatter.format(zonedDateTime);
     }
 }

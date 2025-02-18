@@ -15,7 +15,6 @@ public class Main {
      * <COMMAND> <OPERAND1> <OPERAND2> ...
      */
     public static void main(String[] args) {
-        // TODO: what if args is empty?
         if (args.length == 0) {
             message("Please enter a command.");
             System.exit(0);
@@ -39,7 +38,7 @@ public class Main {
                 final String fileName4Add = args[1];
                 /// fileName4Add 是相对路径，没有开头的/，从CWD出发的相对路径
                 if (Repository.checkFileExist(fileName4Add)) {
-                    /// TODO
+                    // TODO
                 } else {
                     message("File does not exist.");
                     System.exit(0);
@@ -52,9 +51,13 @@ public class Main {
             case "rm":
 
                 break;
-            case "log":
+            case "log": {
+                GitletException.checkOfOperands(args.length, 1);
+                GitletException.checkGitInit();
+                Repository.log_firstParents();
 
                 break;
+            }
             case "global-log":
                 break;
             case "status":
