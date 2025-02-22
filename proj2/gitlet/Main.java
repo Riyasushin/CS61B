@@ -19,63 +19,74 @@ public class Main {
             message("Please enter a command.");
             System.exit(0);
         }
+
         String firstArg = args[0];
-        switch (firstArg) {
-            case "init": {
-                GitletException.checkOfOperands(args.length, 1);
-                if (hasInited()) {
-                    message("A Gitlet version-control system already exists in the current directory.");
-                    System.exit(0);
-                } else {
-                    Repository.init();
-                }
-                break;
-            }
-            case "add": {
-                // TODO: handle the `add [filename]` command
-                GitletException.checkOfOperands(args.length, 2);
-                GitletException.checkGitInit();
-                final String fileName4Add = args[1];
-                /// fileName4Add 是相对路径，没有开头的/，从CWD出发的相对路径
-                if (Repository.checkFileExist(fileName4Add)) {
-                    // TODO
-                } else {
-                    message("File does not exist.");
-                    System.exit(0);
-                }
-                break;
-            }
-            case "commit":
-
-                break;
-            case "rm":
-
-                break;
-            case "log": {
-                GitletException.checkOfOperands(args.length, 1);
-                GitletException.checkGitInit();
-                Repository.log_firstParents();
-
-                break;
-            }
-            case "global-log":
-                break;
-            case "status":
-                break;
-            case "checkout":
-                break;
-            case "branch":
-                break;
-            case "rm-branch":
-                break;
-            case "reset":
-                break;
-            case "merge":
-                break;
-            default:
-                message("No command with that name exists.");
+        if (firstArg.equals("init")) {
+            ///  init
+            GitletException.checkOfOperands(args.length, 1);
+            if (hasInited()) {
+                message("A Gitlet version-control system already exists in the current directory.");
                 System.exit(0);
-                break;
+            } else {
+                Repository.init();
+            }
+        } else {
+            ///  先检查init了没有
+            GitletException.checkGitInit();
+            Repository.loadRepository();
+            switch (firstArg) {
+
+                case "add": {
+                    // TODO: handle the `add [filename]` command
+                    GitletException.checkOfOperands(args.length, 2);
+                    final String fileName4Add = args[1];
+                    /// fileName4Add 是相对路径，没有开头的/，从CWD出发的相对路径
+                    if (Repository.checkFileExist(fileName4Add)) {
+//                        Repository.addFileToStage();
+                    } else {
+                        message("File does not exist.");
+                        System.exit(0);
+                    }
+                    break;
+                }
+                case "commit":
+
+                    break;
+                case "rm":
+
+                    break;
+                case "log": {
+                    GitletException.checkOfOperands(args.length, 1);
+                    Repository.log_firstParents();
+
+                    break;
+                }
+                case "global-log":
+                    break;
+                case "status": {
+                    GitletException.checkOfOperands(args.length, 1);
+                    Repository.log_status();
+
+                    break;
+                }
+                case "checkout": {
+                    GitletException.checkOfOperands(args.length, 2, 1);
+                    break;
+                }
+                case "branch":
+                    break;
+                case "rm-branch":
+                    break;
+                case "reset":
+                    break;
+                case "merge":
+                    break;
+                default:
+                    message("No command with that name exists.");
+                    System.exit(0);
+                    break;
+            }
         }
+
     }
 }

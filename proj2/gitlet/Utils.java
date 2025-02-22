@@ -242,6 +242,8 @@ class Utils {
     }
 
 
+    /* TIME FORMATER */
+
     static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy Z");
 
     /**

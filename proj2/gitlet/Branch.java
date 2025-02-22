@@ -17,6 +17,22 @@ public class Branch implements Serializable, Dumpable {
 
     }
 
+    public static Byte[] readCommits() {
+        /// TDO
+    }
+
+    public static boolean updateBranch() {
+        /// TODO
+    }
+
+    public static Branch changeBranchTo(String anotherBranchName) {
+
+    }
+
+
+
+
+
     /**
      * log时候方便
      */
