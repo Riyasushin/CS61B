@@ -4,6 +4,7 @@ package gitlet;
 
 import org.checkerframework.checker.units.qual.C;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.Date; // TODO: You'll likely use this in this class
 import java.util.List;
@@ -34,6 +35,7 @@ public class Commit implements Serializable, Dumpable {
     /** 空时候用SHA-1 会生成的结果 */
     private static String initID = "da39a3ee5e6b4b0d3255bfef95601890afd80709";
 
+
     /**
      * 返回是否是merge commit, 这由父亲节点的数量判断，多余一个就是merge
      */
@@ -52,7 +54,7 @@ public class Commit implements Serializable, Dumpable {
      * @return
      */
     static Commit createInitCommit() {
-        return Commit.createCommit(initID, "initial commit", 0, null);
+        return Commit.createCommit(initID, "initial commit", 0, null, true);
     }
 
     /**
@@ -61,6 +63,7 @@ public class Commit implements Serializable, Dumpable {
      * @param messageT
      * @param timeT
      * @param parentsT
+     * @param headIF
      * @return
      */
     static Commit createCommit(final String idT, final String messageT, final long timeT, final List<Commit> parentsT) {
@@ -72,8 +75,9 @@ public class Commit implements Serializable, Dumpable {
         return ct;
     }
 
+
     /**
-     * TODO: 返回的是简写不是全部
+     * TODO: 返回的是简写不是全部，前6个
      * @return 该commit的特征值，即它的名称的简写
      */
     public String getUniqueID() {
@@ -107,5 +111,14 @@ public class Commit implements Serializable, Dumpable {
     @Override
     public void dump() {
         // TODO
+    }
+
+    /**
+     * 把本对象存为文件
+     * @param filePath 具体到文件路径
+     */
+    public void save(final File filePath) {
+        final File realFile = Utils.join(filePath, this.getUniqueID());
+        Utils.writeObject(realFile, this);
     }
 }

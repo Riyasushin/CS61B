@@ -42,7 +42,7 @@ public class Main {
                     final String fileName4Add = args[1];
                     /// fileName4Add 是相对路径，没有开头的/，从CWD出发的相对路径
                     if (Repository.checkFileExist(fileName4Add)) {
-//                        Repository.addFileToStage();
+                        Repository.addFileToStage(fileName4Add);
                     } else {
                         message("File does not exist.");
                         System.exit(0);
