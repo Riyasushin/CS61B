@@ -1,5 +1,7 @@
 package gitlet;
 
+import org.checkerframework.checker.units.qual.A;
+
 import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -7,41 +9,38 @@ import java.util.List;
 
 public class Stage implements Serializable, Dumpable {
 
-    public static final File STAGE_FILE= Utils.join(Repository.GITLET_DIR, "STAGE");
+    public static final File STAGE_FILE = Utils.join(Repository.GITLET_DIR, "STAGE");
 
 
     private List<File> addedFiles;
     private List<File> removedFiles;
     private List<File> modifiedFiles;
+    private List<File> untrackedFiles;
 
-    private static String stageInformationName = "information.stage";
+//    private static void clearDirectory(final File dir) {
+//        if (!dir.isDirectory()) return;
+//
+//        File[] files = dir.listFiles();
+//        if (files != null) {
+//            for (File file : files) {
+//                if (file.isDirectory()) {
+//                    clearDirectory(file);  // 递归删除子目录内容
+//                    file.delete();         // 删除空子目录
+//                } else {
+//                    file.delete();         // 删除文件
+//                }
+//            }
+//        }
+//    }
 
-    private static void clearDirectory(final File dir) {
-        if (!dir.isDirectory()) return;
-
-        File[] files = dir.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    clearDirectory(file);  // 递归删除子目录内容
-                    file.delete();         // 删除空子目录
-                } else {
-                    file.delete();         // 删除文件
-                }
-            }
-        }
-    }
     public Stage() {
-//        clearDirectory(stageArea);
 
         modifiedFiles = new ArrayList<>();
         removedFiles = new ArrayList<>();
         addedFiles = new ArrayList<>();
-        /// TODO ???
+        untrackedFiles = new ArrayList<>();
 
-
-////        final File stageInfo = Utils.join(stageArea, stageInformationName);
-//        Utils.writeObject(stageInfo, this);
+        Utils.writeObject(STAGE_FILE, this);
     }
 
     public List<File> getAddedFiles() {
@@ -55,8 +54,6 @@ public class Stage implements Serializable, Dumpable {
     }
 
     public void clear() {
-        /// TODO
-//        Stage.clearDirectory(this.stageAREA);
         this.addedFiles.clear();
         this.modifiedFiles.clear();
         this.removedFiles.clear();
@@ -72,7 +69,7 @@ public class Stage implements Serializable, Dumpable {
     public boolean isTidy() {
         /// TODO
 //        final File stageInfo = Utils.join(stageAREA, stageInformationName);
-        return true;
+        return
 
     }
 
@@ -129,9 +126,8 @@ public class Stage implements Serializable, Dumpable {
      * 将目前对象存储到特定的stage文件中
      */
     public void save() {
-        ///  TODO
-        final File infoStage = Utils.join(STAGE_FILE, stageInformationName);
-        Utils.writeObjectToFileWithFileNotExistFix(infoStage, this);
+
+        Utils.writeObjectToFileWithFileNotExistFix(STAGE_FILE, this);
     }
 
     /**
