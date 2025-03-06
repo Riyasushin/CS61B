@@ -225,6 +225,18 @@ class Utils {
     }
 
 
+    /* MY FILE UTILITIES */
+
+    static void writeObjectToFileWithFileNotExistFix(final File filepath, Serializable obj) {
+        if (!filepath.exists()) {
+            try {
+                filepath.createNewFile();
+            } catch (IOException e) {
+                System.out.println("Error: fail to create file " + filepath.getAbsolutePath());
+            }
+        }
+        writeObject(filepath, obj);
+    }
 
     /* MESSAGES AND ERROR REPORTING */
 
@@ -244,7 +256,7 @@ class Utils {
 
     /* TIME FORMATER */
 
-    static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy Z");
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy Z");
 
     /**
      *

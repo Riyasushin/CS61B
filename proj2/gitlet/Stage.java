@@ -7,11 +7,13 @@ import java.util.List;
 
 public class Stage implements Serializable, Dumpable {
 
-    private List<String> addedFiles;
-    private List<String> removedFiles;
-    private List<String> modifiedFiles;
+    public static final File STAGE_FILE= Utils.join(Repository.GITLET_DIR, "STAGE");
 
-    private File stageAREA;
+
+    private List<File> addedFiles;
+    private List<File> removedFiles;
+    private List<File> modifiedFiles;
+
     private static String stageInformationName = "information.stage";
 
     private static void clearDirectory(final File dir) {
@@ -29,21 +31,32 @@ public class Stage implements Serializable, Dumpable {
             }
         }
     }
-    public Stage(final File stageArea) {
-        stageAREA = stageArea;
-        clearDirectory(stageArea);
+    public Stage() {
+//        clearDirectory(stageArea);
 
         modifiedFiles = new ArrayList<>();
         removedFiles = new ArrayList<>();
         addedFiles = new ArrayList<>();
+        /// TODO ???
 
 
-        final File stageInfo = Utils.join(stageArea, stageInformationName);
-        Utils.writeObject(stageInfo, this);
+////        final File stageInfo = Utils.join(stageArea, stageInformationName);
+//        Utils.writeObject(stageInfo, this);
+    }
+
+    public List<File> getAddedFiles() {
+        return addedFiles;
+    }
+    public List<File> getRemovedFiles() {
+        return removedFiles;
+    }
+    public List<File> getModifiedFiles() {
+        return modifiedFiles;
     }
 
     public void clear() {
-        Stage.clearDirectory(this.stageAREA);
+        /// TODO
+//        Stage.clearDirectory(this.stageAREA);
         this.addedFiles.clear();
         this.modifiedFiles.clear();
         this.removedFiles.clear();
@@ -57,8 +70,9 @@ public class Stage implements Serializable, Dumpable {
      *          false：暂存区有内容
      */
     public boolean isTidy() {
-
-        final File stageInfo = Utils.join(stageAREA, stageInformationName);
+        /// TODO
+//        final File stageInfo = Utils.join(stageAREA, stageInformationName);
+        return true;
 
     }
 
@@ -68,11 +82,13 @@ public class Stage implements Serializable, Dumpable {
      * @return
      */
     public String getStatus() {
-
+        /// TODO
+        return "";
     }
 
     public boolean addFile(final String Filename) {
-
+        /// TODO
+        return true;
     }
 
     /**
@@ -81,17 +97,18 @@ public class Stage implements Serializable, Dumpable {
      * @return
      */
     public boolean removeFileFromStage(final String Filename) {
-
+        /// TODO
+        return true;
     }
 
-    /**
-     * 得到当前工作区和最新一次提交的差距， how
-     * @param latestCommit 最新一次提交
-     * @return
-     */
-    public boolean checkForChangedFile(final Commit latestCommit) {
-
-    }
+//    /**
+//     * 得到当前工作区和最新一次提交的差距， how
+//     * @param latestCommit 最新一次提交
+//     * @return
+//     */
+//    public boolean checkForChangedFile(final Commit latestCommit) {
+//
+//    }
 
     @Override
     public void dump() {
@@ -104,15 +121,17 @@ public class Stage implements Serializable, Dumpable {
      */
     @Override
     public String toString() {
-
+        /// TODO
+        return "";
     }
 
     /**
      * 将目前对象存储到特定的stage文件中
      */
     public void save() {
-        final File infoStage = Utils.join(stageAREA, stageInformationName);
-        Utils.writeObject(infoStage, this);
+        ///  TODO
+        final File infoStage = Utils.join(STAGE_FILE, stageInformationName);
+        Utils.writeObjectToFileWithFileNotExistFix(infoStage, this);
     }
 
     /**
@@ -121,6 +140,7 @@ public class Stage implements Serializable, Dumpable {
      * @return 从文件中读取到的stage信息，可修改
      */
     public static Stage loadStage(File stageDIR) {
-
+        return null;
+        ///  TODO
     }
 }

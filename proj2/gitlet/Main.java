@@ -34,6 +34,7 @@ public class Main {
             ///  先检查init了没有
             GitletException.checkGitInit();
             Repository.loadRepository();
+
             switch (firstArg) {
 
                 case "add": {
@@ -49,9 +50,12 @@ public class Main {
                     }
                     break;
                 }
-                case "commit":
-
+                case "commit": {
+                    GitletException.checkOfOperands(args.length, 2);
+                    final String message = args[1];
+                    Repository.makeCommit(message);
                     break;
+                }
                 case "rm":
 
                     break;
