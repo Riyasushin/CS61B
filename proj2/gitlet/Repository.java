@@ -1,7 +1,13 @@
 package gitlet;
 
+import org.checkerframework.checker.units.qual.A;
+
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 import static gitlet.Branch.BRANCH_AREA;
@@ -92,6 +98,7 @@ public class Repository {
 
     /// point to the HEAD Commit File
     private static final File HEAD = Utils.join(GITLET_DIR, "HEAD");
+
     /* TODO: fill in the rest of this class. */
     public static boolean hasInited() {
         return GITLET_DIR.exists();
@@ -216,24 +223,74 @@ public class Repository {
         /// untracked files
     }
 
+    private static void logOneRecurisive(final Commit cmt) {
+        System.out.println("===");
+        cmt.log();
+        if (cmt.hasDad()) {
+            final Commit parDadCommit = Commit.loadCommitByID(cmt.getDadID());
+            logOneRecurisive(parDadCommit);
+        }
+
+    }
+
     static void log_firstParents() {
         /// TODO
+        logOneRecurisive(headCommit);
+    }
 
+
+    static void global_log() {
+        List<String> allCommitsID = Utils.plainFilenamesIn(COMMIT_AREA);
+        for (String id : allCommitsID) {
+            Commit cmt = Commit.loadCommitByID(id);
+            System.out.println("===");
+            cmt.log();
+        }
+    }
+
+    static void find(final String msg) {
+        List<String> allCommitsID = Utils.plainFilenamesIn(COMMIT_AREA);
+        List<String> matchedIDs = new ArrayList<>();
+        for (String id : allCommitsID) {
+            Commit cmt = Commit.loadCommitByID(id);
+            if (msg.equals(cmt.getMessage())) {
+                matchedIDs.add(cmt.getFullID());
+            }
+        }
+        if (matchedIDs.isEmpty()) {
+            message("Found no commit with that message.");
+            System.exit(0);
+        } else {
+            for (String id : matchedIDs) {
+                System.out.println(id);
+            }
+        }
     }
 
     /**
      * 把文件保存到stage区域
      */
     public static void addFileToStage(final String filename4Stage) {
-        File actual4AddFile = Utils.join(GITLET_DIR, filename4Stage);
         File curFilePosition = Utils.join(CWD, filename4Stage);
 
-        /// 看和commit中的有没有、一不一样 用SHA1
-        /// TODO
-
-        /// 看存进去过没有，之后两个状态：一样or不一样；存了or没存
+        if (stageArea.contains(curFilePosition)) return;
+        switch (headCommit.cmpWithFile(curFilePosition)) {
+            case 404: {
+                stageArea.addNewFile(curFilePosition);
+                break;
+            }
+            case 200: {
+                stageArea.add2SameList(curFilePosition);
+                break;
+            }
+            case 400: {
+                stageArea.addModifiedFile(curFilePosition);
+                break;
+            }
+        }
 
     }
+
     public static void updateHEADCommitTo(final Commit child) {
         /// update HEAD to Child
         child.save();
@@ -255,6 +312,59 @@ public class Repository {
         curBranch.saveTo(CUR_BRANCH);
         /// 清空stage
         stageArea.clear();
+
+    }
+
+    static void createNewBranchAsCurBranch(final String branchName) {
+        /// 茶宠
+        /// 新的，作为主
+        /// 新的，指向headCommit
+        /// 旧的，删除作为主的mark
+        /// 保存新的和旧的
+        List<String> allBranch = Utils.plainFilenamesIn(BRANCH_AREA);
+        if (allBranch.contains(branchName)) {
+            message("A branch with that name already exists.");
+            System.exit(0);
+        }
+        Branch newBranch = Branch.createBranch(branchName, headCommit);
+        newBranch.markAsCurBranch();
+        curBranch.unmarkd();
+        curBranch.saveTo(BRANCH_AREA);
+        newBranch.saveTo(BRANCH_AREA);
+        curBranch = newBranch;
+    }
+
+    public static void rm(final String fileName) {
+        final File curFilePath = Utils.join(CWD, fileName);
+
+        if (headCommit.findByName(curFilePath)) {
+            stageArea.add2RmList(curFilePath);
+        } else {
+            if (stageArea.stagedForAdd(curFilePath)) {
+                stageArea.removeFileFromStage(curFilePath);
+            } else {
+                message("No reason to remove the file.");
+                System.exit(0);
+            }
+        }
+
+    }
+
+
+    /* 一些工具方法 */
+    static String getRelativePathWitCWD(final File filePath) {
+        final Path cwdPath = Paths.get(CWD.toURI());
+        Path fileAbsPath = filePath.toPath().toAbsolutePath();
+
+        // 计算相对路径（若路径合法且在同一文件系统）
+        if (cwdPath.getRoot() != null &&
+                cwdPath.getRoot().equals(fileAbsPath.getRoot())) {
+            return cwdPath.relativize(fileAbsPath).toString();
+        } else {
+            // 若跨文件系统，返回绝对路径
+            return fileAbsPath.toString();
+        }
+
 
     }
 }

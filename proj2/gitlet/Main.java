@@ -56,17 +56,30 @@ public class Main {
                     Repository.makeCommit(message);
                     break;
                 }
-                case "rm":
-
+                case "rm": {
+                    GitletException.checkOfOperands(args.length, 2);
+                    final String fileRelativePath2Remove = args[1];
+                    Repository.rm(fileRelativePath2Remove);
                     break;
+                }
                 case "log": {
                     GitletException.checkOfOperands(args.length, 1);
                     Repository.log_firstParents();
 
                     break;
                 }
-                case "global-log":
+                case "global-log": {
+                    GitletException.checkOfOperands(args.length, 1);
+                    Repository.global_log();
+
                     break;
+                }
+                case "find": {
+                    GitletException.checkOfOperands(args.length, 2);
+                    final String msg = args[1];
+                    Repository.find(msg);
+                    break;
+                }
                 case "status": {
                     GitletException.checkOfOperands(args.length, 1);
                     Repository.log_status();
@@ -77,8 +90,12 @@ public class Main {
                     GitletException.checkOfOperands(args.length, 2, 1);
                     break;
                 }
-                case "branch":
+                case "branch": {
+                    GitletException.checkOfOperands(args.length, 2);
+                    final String branchName = args[1];
+                    Repository.createNewBranchAsCurBranch(branchName);
                     break;
+                }
                 case "rm-branch":
                     break;
                 case "reset":

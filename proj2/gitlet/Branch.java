@@ -42,15 +42,15 @@ public class Branch implements Serializable, Dumpable {
         this.saveTo(thisFilePath);
     }
 
+    public Commit getCommitPointed() {
+        return pointerTo;
+    }
+
     public static Byte[] readCommits() {
         /// TODO
         return null;
     }
 
-    public static boolean updateBranch() {
-        /// TODO
-        return true;
-    }
 
     public static Branch changeBranchTo(String anotherBranchName) {
         /// TODO
@@ -86,6 +86,9 @@ public class Branch implements Serializable, Dumpable {
         this.isHEADBranch = true;
     }
 
+    public void unmarkd() {
+        this.isHEADBranch = false;
+    }
 
 
 

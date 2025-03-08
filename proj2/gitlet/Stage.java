@@ -6,51 +6,32 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class Stage implements Serializable, Dumpable {
 
     public static final File STAGE_FILE = Utils.join(Repository.GITLET_DIR, "STAGE");
 
+    /// 都有：增加的，删除的，修改的，和上一次一样的
+    /// 被记录的没被记录的
 
-    private List<File> addedFiles;
-    private List<File> removedFiles;
-    private List<File> modifiedFiles;
-    private List<File> untrackedFiles;
+    /// 引用不可变，但对象内部状态可变
+    private final Set<File> addedFiles;
+    private final Set<File> removedFiles;
+    private final Set<File> modifiedFiles;
+    private final Set<File> sameList;
 
-//    private static void clearDirectory(final File dir) {
-//        if (!dir.isDirectory()) return;
-//
-//        File[] files = dir.listFiles();
-//        if (files != null) {
-//            for (File file : files) {
-//                if (file.isDirectory()) {
-//                    clearDirectory(file);  // 递归删除子目录内容
-//                    file.delete();         // 删除空子目录
-//                } else {
-//                    file.delete();         // 删除文件
-//                }
-//            }
-//        }
-//    }
+
 
     public Stage() {
 
-        modifiedFiles = new ArrayList<>();
-        removedFiles = new ArrayList<>();
-        addedFiles = new ArrayList<>();
-        untrackedFiles = new ArrayList<>();
+        modifiedFiles = new TreeSet<>();
+        removedFiles = new TreeSet<>();
+        addedFiles = new TreeSet<>();
+        sameList = new TreeSet<>();
 
         Utils.writeObject(STAGE_FILE, this);
-    }
-
-    public List<File> getAddedFiles() {
-        return addedFiles;
-    }
-    public List<File> getRemovedFiles() {
-        return removedFiles;
-    }
-    public List<File> getModifiedFiles() {
-        return modifiedFiles;
     }
 
     public void clear() {
@@ -67,9 +48,8 @@ public class Stage implements Serializable, Dumpable {
      *          false：暂存区有内容
      */
     public boolean isTidy() {
-        /// TODO
-//        final File stageInfo = Utils.join(stageAREA, stageInformationName);
-        return
+
+        return modifiedFiles.isEmpty() && removedFiles.isEmpty() && addedFiles.isEmpty();
 
     }
 
@@ -83,29 +63,48 @@ public class Stage implements Serializable, Dumpable {
         return "";
     }
 
-    public boolean addFile(final String Filename) {
-        /// TODO
-        return true;
+
+
+    public boolean contains(final File filePath) {
+        return sameList.contains(filePath)
+                || addedFiles.contains(filePath)
+                || modifiedFiles.contains(filePath);
+        /// 这里么有在rmList中看
+
     }
+
+    public boolean stagedForAdd(final File filePath) {
+        return addedFiles.contains(filePath) || modifiedFiles.contains(filePath);
+    }
+
+    public boolean inSameList(final File filePath) {
+        return sameList.contains(filePath);
+    }
+    public void add2SameList(final File filePath) {
+
+        sameList.add(filePath);
+    }
+    public void addNewFile(final File filePath) {
+        addedFiles.add(filePath);
+    }
+    public void addModifiedFile(final File filePath) {
+        modifiedFiles.add(filePath);
+    }
+
 
     /**
      * 将某文件在暂存区中删除，并记录下来
-     * @param Filename 要删除的文件的名称
+     * @param filePath 要删除的文件的名称
      * @return
      */
-    public boolean removeFileFromStage(final String Filename) {
-        /// TODO
-        return true;
+    public void removeFileFromStage(final File filePath) {
+        addedFiles.remove(filePath);
+        modifiedFiles.remove(filePath);
     }
 
-//    /**
-//     * 得到当前工作区和最新一次提交的差距， how
-//     * @param latestCommit 最新一次提交
-//     * @return
-//     */
-//    public boolean checkForChangedFile(final Commit latestCommit) {
-//
-//    }
+    public void add2RmList(final File filePath) {
+        removedFiles.remove(filePath);
+    }
 
     @Override
     public void dump() {
@@ -138,5 +137,17 @@ public class Stage implements Serializable, Dumpable {
     public static Stage loadStage(File stageDIR) {
         return null;
         ///  TODO
+    }
+
+    public Set<File> getAddedFiles() {
+        return addedFiles;
+    }
+
+    public Set<File> getRemovedFiles() {
+        return removedFiles;
+    }
+
+    public Set<File> getModifiedFiles() {
+        return modifiedFiles;
     }
 }

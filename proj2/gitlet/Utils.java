@@ -67,6 +67,11 @@ class Utils {
         return sha1(vals.toArray(new Object[vals.size()]));
     }
 
+    /* Added by me, for easier sha1 */
+    static String sha1(final File filepath) {
+        return Utils.sha1(filepath.lastModified(), Utils.readContentsAsString(filepath));
+    }
+
     /* FILE DELETION */
 
     /** Deletes FILE if it exists and is not a directory.  Returns true

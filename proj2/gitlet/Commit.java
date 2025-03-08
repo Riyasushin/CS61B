@@ -12,6 +12,10 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import static gitlet.Branch.BRANCH_AREA;
+import static gitlet.Utils.readObject;
 
 
 /**
@@ -39,7 +43,7 @@ public class Commit implements Serializable, Dumpable {
     /**
      * The father commit of this commit, may not single
      */
-    private List<Commit> parents;
+    private List<String> parents;
     /**
      * The time of this commit
      */
@@ -80,7 +84,7 @@ public class Commit implements Serializable, Dumpable {
         public MetaData(final File filepath, final Commit parentCommit) {
             blobName = filepath.getName();
             sourceFile = filepath;
-            sha1ID = Utils.sha1((String.valueOf(filepath.lastModified()) + Utils.readContentsAsString(filepath)));
+            sha1ID = Utils.sha1(filepath);
 
 
             /// 处理和上次commit 一样不一样
@@ -117,6 +121,17 @@ public class Commit implements Serializable, Dumpable {
     }
 
     /**
+     *
+     * @return True if this is root Commit; false if it has parent.
+     */
+    public boolean hasDad() {
+        return !parents.isEmpty();
+    }
+    public String getDadID() {
+        return parents.get(0);
+    }
+
+    /**
      * 构造函数是私有的，在类的外部无法直接通过 new Commit() 来创建 Commit 对象
      * 保证所有的Commit必须有父母qwq
      */
@@ -133,7 +148,7 @@ public class Commit implements Serializable, Dumpable {
     }
 
     /// 根据提供的信息返回关联好的commit
-    static Commit createCommit(final String messageT, final long timeT, final List<Commit> parentsT, final Map<String, MetaData> datas) {
+    static Commit createCommit(final String messageT, final long timeT, final List<String> parentsT, final Map<String, MetaData> datas) {
         Commit ct = new Commit();
         ct.parents = parentsT;
         ct.timeStamp = timeT;
@@ -147,21 +162,21 @@ public class Commit implements Serializable, Dumpable {
 
     public Commit produceChildCommit(final Stage stageStatus, final String messageInfo) {
         /// TODO: 克隆父提交，根据Stage修改MetaData
-        List<Commit> parentsT = new ArrayList<>();
-        parentsT.add(this);
+        List<String> parentsT = new ArrayList<>();
+        parentsT.add(this.id);
         Map<String, MetaData> cloneMetaData = this.metadataMap;
-        final List<File> added = stageStatus.getAddedFiles();
-        final List<File> removed = stageStatus.getRemovedFiles();
-        final List<File> modified = stageStatus.getModifiedFiles();
+        final Set<File> added = stageStatus.getAddedFiles();
+        final Set<File> removed = stageStatus.getRemovedFiles();
+        final Set<File> modified = stageStatus.getModifiedFiles();
         /// 修改clone的结果，满足最新条件
         for (File addFile : added) {
-            cloneMetaData.put(addFile.getName(), new MetaData(addFile, this));
+            cloneMetaData.put(Repository.getRelativePathWitCWD(addFile), new MetaData(addFile, this));
         }
         for (File rmFile : removed) {
-            cloneMetaData.remove(rmFile.getName());
+            cloneMetaData.remove(Repository.getRelativePathWitCWD(rmFile));
         }
         for (File mdFile : modified) {
-            cloneMetaData.put(mdFile.getName(), new MetaData(mdFile, this));
+            cloneMetaData.put(Repository.getRelativePathWitCWD(mdFile), new MetaData(mdFile, this));
         }
         long timeT = System.currentTimeMillis();
 
@@ -174,8 +189,17 @@ public class Commit implements Serializable, Dumpable {
      *
      * @return 该commit的特征值，即它的名称的简写
      */
-    public String getUniqueID() {
+    public String getSimpleID() {
+        return id.substring(0, 7);
+    }
+
+
+    public String getFullID() {
         return id;
+    }
+
+    public String getMessage() {
+        return message;
     }
 
     /**
@@ -186,20 +210,26 @@ public class Commit implements Serializable, Dumpable {
      */
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("===\n");
+        StringBuilder sb = new StringBuilder();
         sb.append("commit ").append(id).append("\n");
         if (isMerge()) {
             /// 是 Merge ， 加上Merge信息
             sb.append("Merge:");
-            for (Commit pare : parents) {
-                sb.append(" ").append(pare.getUniqueID());
+            for (String pareID : parents) {
+                sb.append(" ").append(pareID);
             }
             sb.append("\n");
         }
         sb.append("Date: ").append(Utils.unixTimeFormatter(timeStamp)).append("\n");
-        sb.append(message).append("\n");
+        sb.append(message).append("\n"); /// 自带空行！！！
 
         return sb.toString();
+    }
+    /**
+     *
+     */
+    public void log() {
+        System.out.println(this.toString());
     }
 
 
@@ -212,13 +242,44 @@ public class Commit implements Serializable, Dumpable {
      * 把本对象存为文件
      */
     public void save() {
-        final File realFile = Utils.join(COMMIT_AREA, this.getUniqueID());
+        final File realFile = Utils.join(COMMIT_AREA, this.getFullID());
         Utils.writeObjectToFileWithFileNotExistFix(realFile, this);
     }
 
-    static Commit readCommitByName(final String commitID) {
-        /// 通过Commmit 的 id识别commit变量，并读取ta
-        final File commitFile = Utils.join(COMMIT_AREA, commitID);
-        return Utils.readObject(commitFile, Commit.class);
+    /**
+     *
+     * @param id 全名
+     * @return  Commit 对象
+     */
+    static Commit loadCommitByID(final String id) {
+        final File commitFile = Utils.join(COMMIT_AREA, id);
+        return readObject(commitFile, Commit.class);
     }
+
+
+    /**
+     * 深度比较一个文件的信息，通过SHA1
+     * @param filePath4Cmp
+     * @return  404 - 没有这个文件
+     *          400 - 请求与存储不一致
+     *          200 - 完全一致
+     */
+    public int cmpWithFile(final File filePath4Cmp) {
+        final MetaData trueVersion = getMetaDataByFilename(filePath4Cmp.getName());
+        if (trueVersion == null) return 404;
+        else {
+            String sha1OfNew = Utils.sha1(filePath4Cmp);
+            if (sha1OfNew.equals(trueVersion.getSHA1()) ) {
+                return 200;
+            } else {
+                return 200;
+            }
+        }
+    }
+
+    public boolean findByName(final File filePath) {
+        return metadataMap.containsKey(Repository.getRelativePathWitCWD(filePath));
+    }
+
+
 }
