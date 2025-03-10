@@ -46,9 +46,8 @@ public class Branch implements Serializable, Dumpable {
         return pointerTo;
     }
 
-    public static Byte[] readCommits() {
-        /// TODO
-        return null;
+    public String getBranchName() {
+        return branchName;
     }
 
 
@@ -90,6 +89,12 @@ public class Branch implements Serializable, Dumpable {
         this.isHEADBranch = false;
     }
 
+    /**
+     * 一键格式化，回归老版本
+     */
+    public void rollBack(final File workingDir) {
+        /// TODO
+    }
 
 
     /**

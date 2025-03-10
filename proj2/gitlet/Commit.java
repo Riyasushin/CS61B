@@ -34,7 +34,6 @@ public class Commit implements Serializable, Dumpable {
      * variable is used. We've provided one example for `message`.
      */
 
-    public static File BLOB_PATH = Utils.join(Repository.GITLET_DIR, "blob");
     public static final File COMMIT_AREA = Utils.join(Repository.GITLET_DIR, "commits");
     /**
      * The hashValue and unique name of this commit
@@ -52,58 +51,6 @@ public class Commit implements Serializable, Dumpable {
      * The message of this Commit.
      */
     private String message;
-
-    public class MetaData {
-        private int version;
-        private String blobName;
-        private String sha1ID;
-        private File sourceFile;
-
-        public String getSHA1() {
-            return sha1ID;
-        }
-
-        public int getVersion() {
-            return version;
-        }
-
-        public String getName() {
-            return blobName;
-        }
-
-        private void saveNewFileBlob() {
-            final File blobPath = Utils.join(BLOB_PATH, blobName, String.valueOf(version));
-            try {
-                Files.copy(sourceFile.toPath(), blobPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
-                Utils.message("Commit error: fail to create new blob");
-            }
-        }
-
-        /// 保证，new MetaData 都是需要新的blob的，以此减少判断
-        public MetaData(final File filepath, final Commit parentCommit) {
-            blobName = filepath.getName();
-            sourceFile = filepath;
-            sha1ID = Utils.sha1(filepath);
-
-
-            /// 处理和上次commit 一样不一样
-            if (parentCommit == null) {
-                /// 特判root,其实没有必要，因为root根本不会调用这个
-                version = 0;
-            } else {
-                final MetaData dataofOldVersion = parentCommit.getMetaDataByFilename(blobName);
-                if (dataofOldVersion == null) {
-                    /// add
-                    version = 0;
-                } else {
-                    /// modify
-                    version = dataofOldVersion.getVersion() + 1;
-                }
-            }
-            saveNewFileBlob();
-        }
-    }
 
     private Map<String, MetaData> metadataMap;
 
@@ -254,6 +201,10 @@ public class Commit implements Serializable, Dumpable {
     static Commit loadCommitByID(final String id) {
         final File commitFile = Utils.join(COMMIT_AREA, id);
         return readObject(commitFile, Commit.class);
+    }
+
+    public void checkFileByName(final String fileName) {
+        /// TODO
     }
 
 

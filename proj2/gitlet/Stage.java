@@ -21,6 +21,9 @@ public class Stage implements Serializable, Dumpable {
     private final Set<File> removedFiles;
     private final Set<File> modifiedFiles;
     private final Set<File> sameList;
+    private final Set<File> addedFilesNotStaged;
+    private final Set<File> removedFilesNotStaged;
+    private final Set<File> modifiedFilesNotStaged;
 
 
 
@@ -31,10 +34,16 @@ public class Stage implements Serializable, Dumpable {
         addedFiles = new TreeSet<>();
         sameList = new TreeSet<>();
 
+        addedFilesNotStaged = new TreeSet<>();
+        removedFilesNotStaged = new TreeSet<>();
+        modifiedFilesNotStaged = new TreeSet<>();
+        /// TODO  维护这些没有被保存的信息
+
         Utils.writeObject(STAGE_FILE, this);
     }
 
     public void clear() {
+        /// 只清理缓存区的，不处理没有被stage的那些信息
         this.addedFiles.clear();
         this.modifiedFiles.clear();
         this.removedFiles.clear();
@@ -49,7 +58,16 @@ public class Stage implements Serializable, Dumpable {
      */
     public boolean isTidy() {
 
+        /// 问题：有没有STAGE的信息，可以算tidy吗
+        /// 可以，只要stage的区域是空的就可以
         return modifiedFiles.isEmpty() && removedFiles.isEmpty() && addedFiles.isEmpty();
+    }
+
+    /**
+     * 看是不是全部都追踪过了，一定要都有副本了
+     * @return
+     */
+    public boolean isDeepTidy() {
 
     }
 
@@ -63,13 +81,43 @@ public class Stage implements Serializable, Dumpable {
         return "";
     }
 
+    public void checkAll(final File workingDir, final Commit curCommit) {
+        /// 多的
+        /// 改的
+        /// 删除了的
+        /// TODO
+
+    }
 
 
-    public boolean contains(final File filePath) {
-        return sameList.contains(filePath)
-                || addedFiles.contains(filePath)
-                || modifiedFiles.contains(filePath);
-        /// 这里么有在rmList中看
+    /*
+
+     switch (headCommit.cmpWithFile(curFilePosition)) {
+            case 404: {
+                stageArea.addNewFile(curFilePosition);
+                break;
+            }
+            case 200: {
+                stageArea.add2SameList(curFilePosition);
+                break;
+            }
+            case 400: {
+                stageArea.addModifiedFile(curFilePosition);
+                break;
+            }
+        }
+     */
+    public void tryContain(final File filePath, final Commit curCommit) {
+
+        if (sameList.contains(filePath)) {
+            return;
+        } else if (addedFilesNotStaged.contains(filePath)) {
+            addedFilesNotStaged.remove(filePath);
+            addedFiles.add(filePath);
+        } else if (modifiedFilesNotStaged.contains(filePath)) {
+            modifiedFilesNotStaged.remove(filePath);
+            modifiedFiles.add(filePath);
+        }
 
     }
 
@@ -131,12 +179,10 @@ public class Stage implements Serializable, Dumpable {
 
     /**
      *
-     * @param stageDIR stage文件的路径，是绝对路径，不包括文件的名字，文件的名字由stage类进行管理
      * @return 从文件中读取到的stage信息，可修改
      */
-    public static Stage loadStage(File stageDIR) {
-        return null;
-        ///  TODO
+    public static Stage loadStage() {
+        return Utils.readObject(STAGE_FILE, Stage.class);
     }
 
     public Set<File> getAddedFiles() {

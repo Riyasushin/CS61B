@@ -88,6 +88,21 @@ public class Main {
                 }
                 case "checkout": {
                     GitletException.checkOfOperands(args.length, 2, 1);
+                    switch (args.length) {
+                        case 2: {
+                            /// TODO
+                            Repository.checkoutBranch(args[1]);
+                            break;
+                        }
+                        case 4: {
+                            /// TODO
+                            Repository.checkoutByIdName(args[1], args[3]);
+                            break;
+                        }
+                        case 3: {
+                            Repository.checkoutFileName(args[2]);
+                        }
+                    }
                     break;
                 }
                 case "branch": {

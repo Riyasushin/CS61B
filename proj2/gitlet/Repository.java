@@ -1,17 +1,12 @@
 package gitlet;
 
-import org.checkerframework.checker.units.qual.A;
-
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 import static gitlet.Branch.BRANCH_AREA;
-import static gitlet.Commit.BLOB_PATH;
 import static gitlet.Commit.COMMIT_AREA;
 import static gitlet.Stage.STAGE_FILE;
 import static gitlet.Utils.*;
@@ -121,8 +116,8 @@ public class Repository {
         }
 
         /// objects
-        if (!BLOB_PATH.exists()) {
-            if (!BLOB_PATH.mkdir())
+        if (!MetaData.BLOB_PATH.exists()) {
+            if (!MetaData.BLOB_PATH.mkdir())
                 return false;
         }
 
@@ -154,6 +149,7 @@ public class Repository {
 
         stageArea = new Stage();
         stageArea.clear();
+        stageArea.save();
 
         return true;
 
@@ -161,10 +157,11 @@ public class Repository {
 
     public static boolean init() {
         if (GITLET_DIR.mkdir()) {
-            return setupDirStruture() && setupCommit() && setupBranch() && setupStage();
+            return (setupDirStruture() && setupCommit() && setupBranch() && setupStage());
+        } else {
+            return false;
         }
         /// 没能成功创建.gitlet目录，返回失败
-        return false;
     }
 
     /**
@@ -173,13 +170,12 @@ public class Repository {
     public static void loadRepository() {
         /// TODO: 设计下，要什么再加载什么，所以
 
-        /// branch
-        File curBranchFile = Utils.join(BRANCH_AREA, "head");
-        curBranch = readObject(curBranchFile, Branch.class);
+        curBranch = readObject(CUR_BRANCH, Branch.class);
 
-        /// Stage
-        File stageSavedFile = Utils.join(STAGE_FILE, "info.stage");
-        stageArea = Utils.readObject(stageSavedFile, Stage.class);
+        headCommit = readObject(HEAD_FILE, Commit.class);
+
+        stageArea = Stage.loadStage();
+        stageArea.checkAll(CWD, headCommit);
 
 
     }
@@ -190,11 +186,6 @@ public class Repository {
 
     private static void setCurCommit(final Commit newCommit) {
         headCommit = newCommit;
-    }
-
-    private static List<String> listAllBranches() {
-        /// TODO
-        return null;
     }
 
 
@@ -213,14 +204,30 @@ public class Repository {
         /// TODO
 
         /// branches
+        System.out.println("=== Branches ===");
+        List<String> allBranchName = Utils.plainFilenamesIn(COMMIT_AREA);
+        assert allBranchName != null;
+        for (String bhName : allBranchName) {
+            if (bhName.equals(curBranch.getBranchName())) {
+                System.out.println("*" + bhName);
+            } else {
+                System.out.println(bhName);
+            }
+        }
+        System.out.print('\n');
 
         /// staged files
+        System.out.println("=== Staged Files ===");
 
         /// removed files
+        System.out.println("=== Removed Files ===");
 
         /// modifications not staged
+        System.out.println("=== Modifications Not Staged For Commit ===");
 
         /// untracked files
+        System.out.println("=== Untracked Files ===");
+
     }
 
     private static void logOneRecurisive(final Commit cmt) {
@@ -273,22 +280,7 @@ public class Repository {
     public static void addFileToStage(final String filename4Stage) {
         File curFilePosition = Utils.join(CWD, filename4Stage);
 
-        if (stageArea.contains(curFilePosition)) return;
-        switch (headCommit.cmpWithFile(curFilePosition)) {
-            case 404: {
-                stageArea.addNewFile(curFilePosition);
-                break;
-            }
-            case 200: {
-                stageArea.add2SameList(curFilePosition);
-                break;
-            }
-            case 400: {
-                stageArea.addModifiedFile(curFilePosition);
-                break;
-            }
-        }
-
+        stageArea.tryContain(curFilePosition, headCommit);
     }
 
     public static void updateHEADCommitTo(final Commit child) {
@@ -365,6 +357,49 @@ public class Repository {
             return fileAbsPath.toString();
         }
 
+
+    }
+
+    public static void checkoutBranch(final String branchName) {
+        final File newBranchFile = Utils.join(BRANCH_AREA, branchName);
+        if (!newBranchFile.exists()) {
+            message("No such branch exists.");
+            System.exit(0);
+        }
+        Branch newBranch = Branch.loadBranch(newBranchFile);
+        if (newBranch.getBranchName().equals(curBranch.getBranchName())) {
+            message("No need to checkout the current branch.");
+            System.exit(0);
+        }
+        if (stageArea.isDeepTidy()) {
+
+            /// branch checkout
+            curBranch.unmarkd();
+            newBranch.markAsCurBranch();
+            curBranch.saveTo(BRANCH_AREA);
+            curBranch.saveTo(BRANCH_AREA);
+            curBranch = newBranch;
+
+            curBranch.rollBack(CWD);
+
+            /// TODO  Stage中没有存
+
+        } else {
+            message("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.exit(0);
+        }
+    }
+
+    public static void checkoutByIdName(final String commitID, final String filename) {
+        final Commit neededCommit = Commit.loadCommitByID(commitID);
+        neededCommit.checkFileByName(filename);
+
+        /// Stage  TODO  
+
+    }
+
+    public static void checkoutFileName(String fileName) {
+        /// TODO
 
     }
 }
