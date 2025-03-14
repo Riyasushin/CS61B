@@ -10,8 +10,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
@@ -68,8 +70,15 @@ class Utils {
     }
 
     /* Added by me, for easier sha1 */
+
+    /**
+     * 根据文件的路径，读取文件的全文，得出sha1
+     * ps:我觉得这一步太对了，只用改这里，别的地方都不用动！
+     * @param filepath 要作为metadata的文件的路径
+     * @return
+     */
     static String sha1(final File filepath) {
-        return Utils.sha1(filepath.lastModified(), Utils.readContentsAsString(filepath));
+        return Utils.sha1( Utils.readContentsAsString(filepath));
     }
 
     /* FILE DELETION */
@@ -231,6 +240,25 @@ class Utils {
 
 
     /* MY FILE UTILITIES */
+
+    static void copyFile(String sourceRoot, String targetRoot, String relativePath)  {
+        Path sourcePath = Paths.get(sourceRoot, relativePath);
+        Path targetPath = Paths.get(targetRoot, relativePath);
+
+        // 确保目标目录存在
+        File targetFile = targetPath.toFile();
+        if (!targetFile.getParentFile().exists()) {
+            targetFile.getParentFile().mkdirs();
+        }
+
+        // 复制文件
+        try {
+            Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            message("Fail in copy file from root %s to root %s, with relative path: %s", sourceRoot, targetRoot, relativePath);
+            throw new RuntimeException(e);
+        }
+    }
 
     static void writeObjectToFileWithFileNotExistFix(final File filepath, Serializable obj) {
         if (!filepath.exists()) {

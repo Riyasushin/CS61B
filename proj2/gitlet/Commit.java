@@ -52,6 +52,9 @@ public class Commit implements Serializable, Dumpable {
      */
     private String message;
 
+    /**
+     * String Repository.getRelativePathWitCWD(addFile),相对于CWD或者stages的相对路径
+     */
     private Map<String, MetaData> metadataMap;
 
     /// metadata TODO

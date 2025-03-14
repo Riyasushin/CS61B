@@ -1,9 +1,12 @@
 package gitlet;
 
+import org.apache.commons.math3.analysis.solvers.RiddersSolver;
 import org.checkerframework.checker.units.qual.A;
 
 import java.io.File;
 import java.io.Serializable;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -12,20 +15,30 @@ import java.util.TreeSet;
 public class Stage implements Serializable, Dumpable {
 
     public static final File STAGE_FILE = Utils.join(Repository.GITLET_DIR, "STAGE");
+    public static final File stagesDir = Utils.join(Repository.GITLET_DIR, "stages");
 
-    /// 都有：增加的，删除的，修改的，和上一次一样的
-    /// 被记录的没被记录的
+/// === Staged Files === add, modify
+/// === Removed Files ===
+/// === Modifications Not Staged For Commit ===
+/// === Untracked Files ===
 
-    /// 引用不可变，但对象内部状态可变
-    private final Set<File> addedFiles;
-    private final Set<File> removedFiles;
-    private final Set<File> modifiedFiles;
-    private final Set<File> sameList;
-    private final Set<File> addedFilesNotStaged;
-    private final Set<File> removedFilesNotStaged;
-    private final Set<File> modifiedFilesNotStaged;
+    /// 这里的File都是staging区域暂存的 File
+    private final Set<File> addedFiles;/// 新的文件，需要加入到commit中去
+    private final Set<File> removedFiles; /// commit中有, 但是被用命令删除的
+    private final Set<File> modifiedFiles; /// 修改了的，也被add了
+    private final Set<File> modifiedNotStagedForCommit; /// 被修改，但是没有被保存的
+    private final Set<File> sameList; /// 完全相同的，用于减少运算；似乎维护起来很困难
+    private final Set<File> untrackedFile;
 
 
+    /*
+A file in the working directory is “modified but not staged” if it is
+
+Tracked in the current commit, changed in the working directory, but not staged; or
+Staged for addition, but with different contents than in the working directory; or
+Staged for addition, but deleted in the working directory; or
+Not staged for removal, but tracked in the current commit and deleted from the working directory.
+     */
 
     public Stage() {
 
@@ -34,9 +47,6 @@ public class Stage implements Serializable, Dumpable {
         addedFiles = new TreeSet<>();
         sameList = new TreeSet<>();
 
-        addedFilesNotStaged = new TreeSet<>();
-        removedFilesNotStaged = new TreeSet<>();
-        modifiedFilesNotStaged = new TreeSet<>();
         /// TODO  维护这些没有被保存的信息
 
         Utils.writeObject(STAGE_FILE, this);
@@ -107,16 +117,36 @@ public class Stage implements Serializable, Dumpable {
             }
         }
      */
-    public void tryContain(final File filePath, final Commit curCommit) {
 
-        if (sameList.contains(filePath)) {
-            return;
-        } else if (addedFilesNotStaged.contains(filePath)) {
-            addedFilesNotStaged.remove(filePath);
-            addedFiles.add(filePath);
-        } else if (modifiedFilesNotStaged.contains(filePath)) {
-            modifiedFilesNotStaged.remove(filePath);
-            modifiedFiles.add(filePath);
+    /**
+     *
+     * @param filePath 要加入的文件在工作区的路径
+     * @param curCommit 当前的commit，用于查找此文件是否被修改\为增加\相同
+     */
+    public void tryAdd(final File filePath, final Commit curCommit) {
+
+        /// Staging an already-staged file overwrites the previous entry in the staging area with the new contents.
+
+        /// Staging an already-staged file overwrites the previous entry in the staging area with the new contents.
+
+        /// remove it from the staging area if it is already there (as can happen when a file is changed, added, and then changed back to it’s original version)
+        MetaData fileData = curCommit.getMetaDataByFilename(Repository.getRelativePathWitCWD(filePath));
+        final File hasAddedFile = Utils.join(stagesDir, Repository.getRelativePathWitCWD(filePath));
+        if (fileData == null) {
+            /// 船新版本
+
+            /// 重复添加，自动忽略
+            /// TODO  
+            addedFiles.add(hasAddedFile);
+            Utils.copyFile(Repository.CWD.getAbsolutePath(), stagesDir.getAbsolutePath(), Repository.getRelativePathWitCWD(filePath));
+
+        } else {
+            /// commit中有老版本的ta
+            if (fileData.getSHA1().equals(Utils.sha1(filePath))) {
+                /// 修改回原版本?
+                addedFiles.remove(hasAddedFile);
+                Utils.restrictedDelete(hasAddedFile);
+            }
         }
 
     }
@@ -156,18 +186,10 @@ public class Stage implements Serializable, Dumpable {
 
     @Override
     public void dump() {
-
-    }
-
-    /**
-     * 把Stage对象中暂存信息传递为特定的格式，为了便于打印,这里直接按照要求输出的分行的结果，'\n'用于分行
-     * @return
-     */
-    @Override
-    public String toString() {
         /// TODO
-        return "";
     }
+
+
 
     /**
      * 将目前对象存储到特定的stage文件中
@@ -196,4 +218,6 @@ public class Stage implements Serializable, Dumpable {
     public Set<File> getModifiedFiles() {
         return modifiedFiles;
     }
+
+
 }

@@ -35,33 +35,7 @@ public class Repository {
     private static Commit headCommit;
 
     /*
-    .gitlet
-        Commit_edit_message
-        Fetch_head 最后一次和服务器交互的Commit
-        HEAD 当前工作群的Commit
-        CUR_BRANCH 当前的所处的分支
-        origin_commit 当前分支和远程分支最后一个COMMIT的 SHA1值
-        branches
-            branch1
-            branch2
-        config 配置远程地址、分支指向，作者，邮箱......
-        stage 暂存区索引文件
-        logs    提交日志
-            HEAD
-            refs
-                heads
-                remotes
-        objects
-            一堆存储文件夹，名称来着SHA1前三个字符
-            info
-                一堆。idx.pak文件文件打包后的东西
-        blobs
-            name
-                blob1
-                blob2
-                blob3
-        commits
-            ahi
+
                 ......
             hnu
                 ......
@@ -88,11 +62,11 @@ public class Repository {
     public static final File GITLET_DIR = join(CWD, ".gitlet");
 
 
+    /// 指向headCommit
     private static final File HEAD_FILE = Utils.join(GITLET_DIR, "HEAD");
+    /// 指向curBranch
     private static final File CUR_BRANCH = Utils.join(GITLET_DIR, "CUR_BRANCH");
 
-    /// point to the HEAD Commit File
-    private static final File HEAD = Utils.join(GITLET_DIR, "HEAD");
 
     /* TODO: fill in the rest of this class. */
     public static boolean hasInited() {
@@ -121,16 +95,16 @@ public class Repository {
                 return false;
         }
 
+        /// stage
+        if (!Stage.stagesDir.exists()) {
+            if (!Stage.stagesDir.mkdir()) {
+                return false;
+            }
+        }
+
         return true;
 
     }
-//    if (!ddgFile.exists()) {
-//        try {
-//            ddgFile.createNewFile();
-//        } catch (IOException e) {
-//            System.out.println("Error: fail to create file " + ddgFile.getAbsolutePath());
-//        }
-//    }
 
     private static boolean setupCommit() {
         setCurCommit(Commit.createInitCommit());
@@ -152,7 +126,6 @@ public class Repository {
         stageArea.save();
 
         return true;
-
     }
 
     public static boolean init() {
@@ -194,6 +167,21 @@ public class Repository {
         return file4Add.exists();
     }
 
+    /**
+     *      * 把文件保存到stage区域
+     * @param filename4Stage 是相对路径，没有开头的/，从CWD出发的相对路径
+     */
+    public static void addFileToStage(final String filename4Stage) {
+
+        if (!Repository.checkFileExist(filename4Stage)) {
+            message("File does not exist.");
+            System.exit(0);
+        }
+
+        File curFilePosition = Utils.join(CWD, filename4Stage);
+
+        stageArea.tryAdd(curFilePosition, headCommit);
+    }
 
     private static Commit getCommitRecur(String Filter) {
         /// TODO
@@ -274,14 +262,6 @@ public class Repository {
         }
     }
 
-    /**
-     * 把文件保存到stage区域
-     */
-    public static void addFileToStage(final String filename4Stage) {
-        File curFilePosition = Utils.join(CWD, filename4Stage);
-
-        stageArea.tryContain(curFilePosition, headCommit);
-    }
 
     public static void updateHEADCommitTo(final Commit child) {
         /// update HEAD to Child
@@ -344,6 +324,12 @@ public class Repository {
 
 
     /* 一些工具方法 */
+
+    /**
+     * TODO  和我想的结果不一样，得去重写，我想要的不是变成../../..这种，是只保留相对路径
+     * @param filePath
+     * @return
+     */
     static String getRelativePathWitCWD(final File filePath) {
         final Path cwdPath = Paths.get(CWD.toURI());
         Path fileAbsPath = filePath.toPath().toAbsolutePath();
