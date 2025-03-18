@@ -310,8 +310,13 @@ public class Repository {
         final File curFilePath = Utils.join(CWD, fileName);
 
         if (headCommit.findByName(curFilePath)) {
+            /// 在commit中有
+            /// remove it from the working directory, 这一步被stageArea处理了
             stageArea.add2RmList(curFilePath);
+            ///
+
         } else {
+            /// 在commit中无
             if (stageArea.stagedForAdd(curFilePath)) {
                 stageArea.removeFileFromStage(curFilePath);
             } else {
@@ -327,8 +332,9 @@ public class Repository {
 
     /**
      * TODO  和我想的结果不一样，得去重写，我想要的不是变成../../..这种，是只保留相对路径
-     * @param filePath
-     * @return
+     * 这算一个核心算法，注意
+     * @param filePath 一个在CWD中的文件的File信息
+     * @return filePath 文件和CWD的相对路径的String值
      */
     static String getRelativePathWitCWD(final File filePath) {
         final Path cwdPath = Paths.get(CWD.toURI());
@@ -357,7 +363,7 @@ public class Repository {
             message("No need to checkout the current branch.");
             System.exit(0);
         }
-        if (stageArea.isDeepTidy()) {
+        if (stageArea.isDeepTidy(Repository.CWD, Repository.headCommit)) {
 
             /// branch checkout
             curBranch.unmarkd();

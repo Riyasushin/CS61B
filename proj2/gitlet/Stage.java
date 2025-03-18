@@ -23,11 +23,15 @@ public class Stage implements Serializable, Dumpable {
 /// === Untracked Files ===
 
     /// 这里的File都是staging区域暂存的 File
-    private final Set<File> addedFiles;/// 新的文件，需要加入到commit中去
-    private final Set<File> removedFiles; /// commit中有, 但是被用命令删除的
-    private final Set<File> modifiedFiles; /// 修改了的，也被add了
-    private final Set<File> modifiedNotStagedForCommit; /// 被修改，但是没有被保存的
-    private final Set<File> sameList; /// 完全相同的，用于减少运算；似乎维护起来很困难
+    /// 新的文件，需要加入到commit中去
+    private final Set<File> addedFiles;
+    /// commit中有, 但是被用命令删除的
+    private final Set<File> removedFiles;
+    /// 修改了的commit过的
+    private final Set<File> modifiedFiles;
+    /// 没有被stage的修改
+    private final Set<File> modifiedNotStagedForCommit;
+    /// 设置为不追踪的文件
     private final Set<File> untrackedFile;
 
 
@@ -45,7 +49,8 @@ Not staged for removal, but tracked in the current commit and deleted from the w
         modifiedFiles = new TreeSet<>();
         removedFiles = new TreeSet<>();
         addedFiles = new TreeSet<>();
-        sameList = new TreeSet<>();
+        modifiedNotStagedForCommit = new TreeSet<>();
+        untrackedFile = new TreeSet<>();
 
         /// TODO  维护这些没有被保存的信息
 
@@ -63,8 +68,9 @@ Not staged for removal, but tracked in the current commit and deleted from the w
 
     /**
      * 返回暂存区是不是空的
+     *
      * @return true: 暂存区四空的
-     *          false：暂存区有内容
+     * false：暂存区有内容
      */
     public boolean isTidy() {
 
@@ -75,20 +81,12 @@ Not staged for removal, but tracked in the current commit and deleted from the w
 
     /**
      * 看是不是全部都追踪过了，一定要都有副本了
+     *
      * @return
      */
-    public boolean isDeepTidy() {
-
-    }
-
-
-    /**
-     * 返回目前Stage对象的各种信息，计划用于status命令
-     * @return
-     */
-    public String getStatus() {
-        /// TODO
-        return "";
+    public boolean isDeepTidy(final File workingDir, final Commit cmpCommit) {
+        this.checkAll(workingDir, cmpCommit);
+        return modifiedNotStagedForCommit.isEmpty();
     }
 
     public void checkAll(final File workingDir, final Commit curCommit) {
@@ -119,8 +117,7 @@ Not staged for removal, but tracked in the current commit and deleted from the w
      */
 
     /**
-     *
-     * @param filePath 要加入的文件在工作区的路径
+     * @param filePath  要加入的文件在工作区的路径
      * @param curCommit 当前的commit，用于查找此文件是否被修改\为增加\相同
      */
     public void tryAdd(final File filePath, final Commit curCommit) {
@@ -131,40 +128,53 @@ Not staged for removal, but tracked in the current commit and deleted from the w
 
         /// remove it from the staging area if it is already there (as can happen when a file is changed, added, and then changed back to it’s original version)
         MetaData fileData = curCommit.getMetaDataByFilename(Repository.getRelativePathWitCWD(filePath));
-        final File hasAddedFile = Utils.join(stagesDir, Repository.getRelativePathWitCWD(filePath));
-        if (fileData == null) {
-            /// 船新版本
-
-            /// 重复添加，自动忽略
-            /// TODO  
-            addedFiles.add(hasAddedFile);
-            Utils.copyFile(Repository.CWD.getAbsolutePath(), stagesDir.getAbsolutePath(), Repository.getRelativePathWitCWD(filePath));
-
-        } else {
+        final File file4Add = Utils.join(stagesDir, Repository.getRelativePathWitCWD(filePath));
+        if (fileData != null) {
             /// commit中有老版本的ta
             if (fileData.getSHA1().equals(Utils.sha1(filePath))) {
-                /// 修改回原版本?
-                addedFiles.remove(hasAddedFile);
-                Utils.restrictedDelete(hasAddedFile);
+                /// 修改回原版本
+                addedFiles.remove(file4Add); /// 如果没有的话，set会自动返回，有的话被删除
+                Utils.restrictedDelete(file4Add);
+            } else {
+                /// 之后，存了，与原版不同，看stage中有没有了,有的话进入modify区域
+                if (modifiedFiles.contains(file4Add)) {
+                    if (!Utils.sha1(file4Add).equals(Utils.sha1(filePath))) {
+                        /// 相同不用管，现在不同了
+                        /// TODO  泛化，抽象一层
+                        modifiedFiles.add(file4Add);
+                        Utils.copyFile(Repository.CWD.getAbsolutePath(), stagesDir.getAbsolutePath(), Repository.getRelativePathWitCWD(filePath));
+                    }
+                }
+            }
+        } else {
+            /// 看stage区
+            if (addedFiles.contains(file4Add)) {
+                /// stage过，看新或旧
+                if (!Utils.sha1(file4Add).equals(Utils.sha1(filePath))) {
+                    /// 相同不用管，现在不同了
+                    /// TODO  泛化，抽象一层
+                    addedFiles.add(file4Add);
+                    Utils.copyFile(Repository.CWD.getAbsolutePath(), stagesDir.getAbsolutePath(), Repository.getRelativePathWitCWD(filePath));
+                }
+            } else {
+                /// 没有stage过，纯纯新的
+                addedFiles.add(file4Add);
+                Utils.copyFile(Repository.CWD.getAbsolutePath(), stagesDir.getAbsolutePath(), Repository.getRelativePathWitCWD(filePath));
             }
         }
 
+        this.save();
     }
 
     public boolean stagedForAdd(final File filePath) {
         return addedFiles.contains(filePath) || modifiedFiles.contains(filePath);
     }
 
-    public boolean inSameList(final File filePath) {
-        return sameList.contains(filePath);
-    }
-    public void add2SameList(final File filePath) {
 
-        sameList.add(filePath);
-    }
     public void addNewFile(final File filePath) {
         addedFiles.add(filePath);
     }
+
     public void addModifiedFile(final File filePath) {
         modifiedFiles.add(filePath);
     }
@@ -172,23 +182,33 @@ Not staged for removal, but tracked in the current commit and deleted from the w
 
     /**
      * 将某文件在暂存区中删除，并记录下来
+     *
      * @param filePath 要删除的文件的名称
      * @return
      */
     public void removeFileFromStage(final File filePath) {
         addedFiles.remove(filePath);
-        modifiedFiles.remove(filePath);
+//        modifiedFiles.remove(filePath);
+        final File addedFileInStage = Utils.join(stagesDir, Repository.getRelativePathWitCWD(filePath));
+        Utils.restrictedDelete(addedFileInStage);
+        this.save();
     }
 
     public void add2RmList(final File filePath) {
-        removedFiles.remove(filePath);
+        removedFiles.add(filePath);
+        /// addedFile里面只可能是新加入的，这个被调用的前提是commit里面有，如果存在一定在modified里面
+        if ( modifiedFiles.contains(filePath)) {
+            final File addedFileInStage = Utils.join(stagesDir, Repository.getRelativePathWitCWD(filePath));
+            Utils.restrictedDelete(addedFileInStage);
+        }
+        /// 记得保存为文件
+        this.save();
     }
 
     @Override
     public void dump() {
         /// TODO
     }
-
 
 
     /**
@@ -200,7 +220,6 @@ Not staged for removal, but tracked in the current commit and deleted from the w
     }
 
     /**
-     *
      * @return 从文件中读取到的stage信息，可修改
      */
     public static Stage loadStage() {

@@ -241,6 +241,13 @@ class Utils {
 
     /* MY FILE UTILITIES */
 
+    /**
+     * 从sourceRoot/relativePath 复制到 targetRoot/relativePath
+     * 这是覆盖，如果有，先删除再复制 TODO
+     * @param sourceRoot dir
+     * @param targetRoot dir
+     * @param relativePath 相对于sourceRoot的相对路径
+     */
     static void copyFile(String sourceRoot, String targetRoot, String relativePath)  {
         Path sourcePath = Paths.get(sourceRoot, relativePath);
         Path targetPath = Paths.get(targetRoot, relativePath);

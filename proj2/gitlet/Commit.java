@@ -231,7 +231,13 @@ public class Commit implements Serializable, Dumpable {
         }
     }
 
+    /**
+     * 通过查询metadataMap中有没有相对路径的string，查到说明有，没查到说明没
+     * @param filePath 文件在CWD中的路径信息
+     * @return
+     */
     public boolean findByName(final File filePath) {
+
         return metadataMap.containsKey(Repository.getRelativePathWitCWD(filePath));
     }
 
