@@ -5,10 +5,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static gitlet.Branch.BRANCH_AREA;
 import static gitlet.Commit.COMMIT_AREA;
-import static gitlet.Stage.STAGE_FILE;
 import static gitlet.Utils.*;
 
 // TODO: any imports you need here
@@ -33,14 +33,10 @@ public class Repository {
     private static Branch curBranch;
 
     private static Commit headCommit;
+    public static Commit getHeadCommit() {
+        return headCommit;
+    }
 
-    /*
-
-                ......
-            hnu
-                ......
-
-     */
     /**
      * 本仓库的所有的branch
      */
@@ -49,7 +45,7 @@ public class Repository {
     /**
      * 缓存区
      */
-    private static Stage stageArea;
+    private static Stage stageController;
 
 
     /**
@@ -64,6 +60,7 @@ public class Repository {
 
     /// 指向headCommit
     private static final File HEAD_FILE = Utils.join(GITLET_DIR, "HEAD");
+
     /// 指向curBranch
     private static final File CUR_BRANCH = Utils.join(GITLET_DIR, "CUR_BRANCH");
 
@@ -121,9 +118,9 @@ public class Repository {
 
     private static boolean setupStage() {
 
-        stageArea = new Stage();
-        stageArea.clear();
-        stageArea.save();
+        stageController = new Stage();
+        stageController.clear();
+        stageController.save();
 
         return true;
     }
@@ -147,8 +144,8 @@ public class Repository {
 
         headCommit = readObject(HEAD_FILE, Commit.class);
 
-        stageArea = Stage.loadStage();
-        stageArea.checkAll(CWD, headCommit);
+        stageController = Stage.loadStage();
+        stageController.checkUntracked(headCommit, CWD);
 
 
     }
@@ -180,7 +177,7 @@ public class Repository {
 
         File curFilePosition = Utils.join(CWD, filename4Stage);
 
-        stageArea.tryAdd(curFilePosition, headCommit);
+        stageController.tryAdd(curFilePosition, headCommit);
     }
 
     private static Commit getCommitRecur(String Filter) {
@@ -204,11 +201,25 @@ public class Repository {
         }
         System.out.print('\n');
 
+        stageController.checkUntracked(headCommit, CWD);
         /// staged files
         System.out.println("=== Staged Files ===");
+        final Set<File> added = stageController.getAddedFiles();
+        for (File f : added) {
+            message(f.getName());
+        }
+        final Set<File> modified = stageController.getModifiedFiles();
+        for (File f : modified) {
+            message(f.getName());
+        }
+        System.out.print("\n");
 
         /// removed files
         System.out.println("=== Removed Files ===");
+        final Set<File> rmed = stageController.getRemovedFiles();
+        for (File f : rmed) {
+            message(f.getName());
+        }
 
         /// modifications not staged
         System.out.println("=== Modifications Not Staged For Commit ===");
@@ -276,14 +287,14 @@ public class Repository {
         /// the date and time and message and id
 
         /// 从缓存区中提取修改的信息 创建childCommit 修改headCommit
-        final Commit childCommit = headCommit.produceChildCommit(stageArea, messageInformation);
+        final Commit childCommit = headCommit.produceChildCommit(stageController, messageInformation);
 
         updateHEADCommitTo(childCommit);
         /// 更新branch指向
         curBranch.updateCommitTo(headCommit);
         curBranch.saveTo(CUR_BRANCH);
         /// 清空stage
-        stageArea.clear();
+        stageController.clear();
 
     }
 
@@ -312,13 +323,13 @@ public class Repository {
         if (headCommit.findByName(curFilePath)) {
             /// 在commit中有
             /// remove it from the working directory, 这一步被stageArea处理了
-            stageArea.add2RmList(curFilePath);
+            stageController.add2RmList(curFilePath);
             ///
 
         } else {
             /// 在commit中无
-            if (stageArea.stagedForAdd(curFilePath)) {
-                stageArea.removeFileFromStage(curFilePath);
+            if (stageController.stagedForAdd(curFilePath)) {
+                stageController.removeFileFromStage(curFilePath);
             } else {
                 message("No reason to remove the file.");
                 System.exit(0);
@@ -337,19 +348,7 @@ public class Repository {
      * @return filePath 文件和CWD的相对路径的String值
      */
     static String getRelativePathWitCWD(final File filePath) {
-        final Path cwdPath = Paths.get(CWD.toURI());
-        Path fileAbsPath = filePath.toPath().toAbsolutePath();
-
-        // 计算相对路径（若路径合法且在同一文件系统）
-        if (cwdPath.getRoot() != null &&
-                cwdPath.getRoot().equals(fileAbsPath.getRoot())) {
-            return cwdPath.relativize(fileAbsPath).toString();
-        } else {
-            // 若跨文件系统，返回绝对路径
-            return fileAbsPath.toString();
-        }
-
-
+        return getRelativePathWit(filePath, CWD);
     }
 
     public static void checkoutBranch(final String branchName) {
@@ -363,7 +362,10 @@ public class Repository {
             message("No need to checkout the current branch.");
             System.exit(0);
         }
-        if (stageArea.isDeepTidy(Repository.CWD, Repository.headCommit)) {
+
+        stageController.checkUntracked(headCommit, CWD);
+
+        if (stageController.isDeepTidy()) {
 
             /// branch checkout
             curBranch.unmarkd();
@@ -375,6 +377,9 @@ public class Repository {
             curBranch.rollBack(CWD);
 
             /// TODO  Stage中没有存
+            stageController.clear();
+
+
 
         } else {
             message("There is an untracked file in the way; delete it, or add and commit it first.");
@@ -384,14 +389,52 @@ public class Repository {
 
     public static void checkoutByIdName(final String commitID, final String filename) {
         final Commit neededCommit = Commit.loadCommitByID(commitID);
-        neededCommit.checkFileByName(filename);
+        if (neededCommit == null) {
+            Utils.message("No commit with that id exists.");
+            System.exit(0);
+        } else {
+            ///
+            Repository.checkoutFileName(filename, neededCommit);
 
-        /// Stage  TODO  
+        }
+
 
     }
 
-    public static void checkoutFileName(String fileName) {
+    /**
+     * Takes the version of the file as it exists in the head commit
+     * and puts it in the working directory, overwriting the version
+     * of the file that’s already there if there is one.
+     * The new version of the file is not staged.
+     * @param fileRelativePath the file for change to the curCommit, the relative path to CWD!!!
+     */
+    public static void checkoutFileName(String fileRelativePath, final Commit workingCommit) {
         /// TODO
+        MetaData fileData = workingCommit.getMetaDataByFilename(fileRelativePath);
+        if (fileData == null) {
+            Utils.message("File does not exist in that commit. ");
+            System.exit(0);
+        }
 
+        final File backFile = fileData.getFilePathOfBlob();
+        final File distFile = Utils.join(CWD, fileRelativePath);
+        Utils.moveOroverwriteFileFromSrcToDist(backFile, distFile);
+
+        /// not stage
+        stageController.tryForgetFile(distFile);
+    }
+
+    public static String getRelativePathWit(final File filePath, final File stagesDir) {
+        final Path cwdPath = Paths.get(stagesDir.toURI());
+        Path fileAbsPath = filePath.toPath().toAbsolutePath();
+
+        // 计算相对路径（若路径合法且在同一文件系统）
+        if (cwdPath.getRoot() != null &&
+                cwdPath.getRoot().equals(fileAbsPath.getRoot())) {
+            return cwdPath.relativize(fileAbsPath).toString();
+        } else {
+            // 若跨文件系统，返回绝对路径
+            return fileAbsPath.toString();
+        }
     }
 }

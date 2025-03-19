@@ -90,10 +90,12 @@ public class Branch implements Serializable, Dumpable {
     }
 
     /**
-     * 一键格式化，回归老版本
+     *
+     * @param workingDir CWD
      */
     public void rollBack(final File workingDir) {
         /// TODO
+
     }
 
 

@@ -90,12 +90,12 @@ public class Main {
                             break;
                         }
                         case 4: {
-                            /// TODO
                             Repository.checkoutByIdName(args[1], args[3]);
                             break;
                         }
                         case 3: {
-                            Repository.checkoutFileName(args[2]);
+                            Repository.checkoutFileName(args[2], Repository.getHeadCommit());
+                            break;
                         }
                     }
                     break;

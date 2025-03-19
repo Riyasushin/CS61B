@@ -59,8 +59,17 @@ public class Commit implements Serializable, Dumpable {
 
     /// metadata TODO
 
+    /**
+     * relative path (str) -> data
+     * @param name
+     * @return null if not find
+     */
     public MetaData getMetaDataByFilename(final String name) {
         return metadataMap.getOrDefault(name, null);
+    }
+
+    public Set<String> getMetaDataNameList() {
+        return metadataMap.keySet();
     }
 
     /**
@@ -120,13 +129,13 @@ public class Commit implements Serializable, Dumpable {
         final Set<File> modified = stageStatus.getModifiedFiles();
         /// 修改clone的结果，满足最新条件
         for (File addFile : added) {
-            cloneMetaData.put(Repository.getRelativePathWitCWD(addFile), new MetaData(addFile, this));
+            cloneMetaData.put(Repository.getRelativePathWit(addFile, Stage.stagesDir), new MetaData(addFile, this));
         }
         for (File rmFile : removed) {
-            cloneMetaData.remove(Repository.getRelativePathWitCWD(rmFile));
+            cloneMetaData.remove(Repository.getRelativePathWit(rmFile, Stage.stagesDir));
         }
         for (File mdFile : modified) {
-            cloneMetaData.put(Repository.getRelativePathWitCWD(mdFile), new MetaData(mdFile, this));
+            cloneMetaData.put(Repository.getRelativePathWit(mdFile, Stage.stagesDir), new MetaData(mdFile, this));
         }
         long timeT = System.currentTimeMillis();
 
@@ -200,16 +209,16 @@ public class Commit implements Serializable, Dumpable {
      *
      * @param id 全名
      * @return  Commit 对象
+     *          null, if not exists
      */
     static Commit loadCommitByID(final String id) {
         final File commitFile = Utils.join(COMMIT_AREA, id);
+        /// deal with fail error. if not exits, return null
+        if (!commitFile.exists()) {
+            return null;
+        }
         return readObject(commitFile, Commit.class);
     }
-
-    public void checkFileByName(final String fileName) {
-        /// TODO
-    }
-
 
     /**
      * 深度比较一个文件的信息，通过SHA1

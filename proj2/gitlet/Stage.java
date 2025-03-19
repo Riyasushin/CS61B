@@ -29,9 +29,9 @@ public class Stage implements Serializable, Dumpable {
     private final Set<File> removedFiles;
     /// 修改了的commit过的
     private final Set<File> modifiedFiles;
-    /// 没有被stage的修改
-    private final Set<File> modifiedNotStagedForCommit;
-    /// 设置为不追踪的文件
+    /// 没有被stage的修改 TODO
+//    private final Set<File> modifiedNotStagedForCommit;
+    /// not追踪的文件
     private final Set<File> untrackedFile;
 
 
@@ -59,10 +59,16 @@ Not staged for removal, but tracked in the current commit and deleted from the w
 
     public void clear() {
         /// 只清理缓存区的，不处理没有被stage的那些信息
+        /// files
+        for (File f : addedFiles) {
+            f.delete();
+        }
+        for (File f : modifiedFiles) {
+            f.delete();
+        }
         this.addedFiles.clear();
         this.modifiedFiles.clear();
         this.removedFiles.clear();
-
         this.save();
     }
 
@@ -84,16 +90,51 @@ Not staged for removal, but tracked in the current commit and deleted from the w
      *
      * @return
      */
-    public boolean isDeepTidy(final File workingDir, final Commit cmpCommit) {
-        this.checkAll(workingDir, cmpCommit);
-        return modifiedNotStagedForCommit.isEmpty();
+    public boolean isDeepTidy() {
+        /// TODO
+//        return modifiedNotStagedForCommit.isEmpty();
     }
 
-    public void checkAll(final File workingDir, final Commit curCommit) {
-        /// 多的
-        /// 改的
-        /// 删除了的
+    public void checkUntracked(final Commit headCommit, final File curWorkDir) {
         /// TODO
+        /// here check, not use stored data
+        /// TODO ,check  plainFilenamesIn impl
+        /// TODO !!!!! Wrong algorithmn, cmp sha1!!!!
+        final Set<String> commitedFiles = headCommit.getMetaDataNameList();
+        List<String> stagedFiles = Utils.plainFilenamesIn(stagesDir);
+        List<String> workingFiles = Utils.plainFilenamesIn(Repository.CWD);
+
+        if (workingFiles == null) {
+            return;
+        }
+        for (String filePathRelative : workingFiles) {
+            if (stagedFiles != null && stagedFiles.contains(filePathRelative)) {
+                /// added or modified
+                if (commitedFiles.contains(filePathRelative)) {
+                    modifiedFiles.add(Utils.join(stagesDir, filePathRelative));
+                } else {
+                    addedFiles.add(Utils.join(stagesDir, filePathRelative));
+                }
+                /// TODO  can i do like this?
+                stagedFiles.remove(filePathRelative);
+            } else {
+                /// untracked
+                untrackedFile.add(Utils.join(stagesDir, filePathRelative));
+            }
+            if (commitedFiles != null && commitedFiles.contains(filePathRelative)) {
+                removedFiles.add(Utils.join(stagesDir, filePathRelative));
+                commitedFiles.remove(filePathRelative);
+            }
+        }
+        if (stagedFiles != null) {
+            /// ???? forget to delete when working before
+            while (!stagedFiles.isEmpty()) {
+                final String fileTrash = stagedFiles.getFirst();
+                Utils.restrictedDelete(Utils.join(stagesDir, fileTrash));
+                stagedFiles.remove(fileTrash);
+            }
+        }
+
 
     }
 
@@ -170,15 +211,15 @@ Not staged for removal, but tracked in the current commit and deleted from the w
         return addedFiles.contains(filePath) || modifiedFiles.contains(filePath);
     }
 
+    public void tryForgetFile(final File file2ForgetInCWD) {
+        final File filePathInStage = Utils.join(stagesDir, Repository.getRelativePathWitCWD(file2ForgetInCWD));
 
-    public void addNewFile(final File filePath) {
-        addedFiles.add(filePath);
+        addedFiles.remove(filePathInStage);
+        modifiedFiles.remove(filePathInStage);
+        Utils.restrictedDelete(filePathInStage);
+
+        this.save();
     }
-
-    public void addModifiedFile(final File filePath) {
-        modifiedFiles.add(filePath);
-    }
-
 
     /**
      * 将某文件在暂存区中删除，并记录下来

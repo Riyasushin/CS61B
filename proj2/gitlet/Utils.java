@@ -267,6 +267,24 @@ class Utils {
         }
     }
 
+    static void moveOroverwriteFileFromSrcToDist(final File src, final File dist) {
+        if (src == null || dist == null) {
+            throw new IllegalArgumentException("Source and destination files cannot be null.");
+        }
+
+        // Convert File objects to Path objects
+        final Path srcPath = src.toPath();
+        final Path distPath = dist.toPath();
+
+        try {
+            // Move the file from src to dist, overwriting if it already exists
+            Files.move(srcPath, distPath, StandardCopyOption.REPLACE_EXISTING);
+//            System.out.println("File moved and overwritten successfully.");
+        } catch (IOException e) {
+            System.err.println("An error occurred while moving the file: " + e.getMessage());
+        }
+    }
+
     static void writeObjectToFileWithFileNotExistFix(final File filepath, Serializable obj) {
         if (!filepath.exists()) {
             try {
