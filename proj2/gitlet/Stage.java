@@ -49,7 +49,7 @@ Not staged for removal, but tracked in the current commit and deleted from the w
         modifiedFiles = new TreeSet<>();
         removedFiles = new TreeSet<>();
         addedFiles = new TreeSet<>();
-        modifiedNotStagedForCommit = new TreeSet<>();
+//        modifiedNotStagedForCommit = new TreeSet<>(); TODO !!!!
         untrackedFile = new TreeSet<>();
 
         /// TODO  维护这些没有被保存的信息
@@ -93,6 +93,7 @@ Not staged for removal, but tracked in the current commit and deleted from the w
     public boolean isDeepTidy() {
         /// TODO
 //        return modifiedNotStagedForCommit.isEmpty();
+        return true;
     }
 
     public void checkUntracked(final Commit headCommit, final File curWorkDir) {
@@ -129,7 +130,7 @@ Not staged for removal, but tracked in the current commit and deleted from the w
         if (stagedFiles != null) {
             /// ???? forget to delete when working before
             while (!stagedFiles.isEmpty()) {
-                final String fileTrash = stagedFiles.getFirst();
+                final String fileTrash = stagedFiles.get(0);
                 Utils.restrictedDelete(Utils.join(stagesDir, fileTrash));
                 stagedFiles.remove(fileTrash);
             }
