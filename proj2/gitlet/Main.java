@@ -124,8 +124,11 @@ public class Main {
                     Repository.resetByCommitID(args[1]);
                     break;
                 }
-                case "merge":
+                case "merge": {
+                    GitletException.checkOfOperands(args.length, 2);
+                    Repository.merge(args[1]);
                     break;
+                }
                 default:
                     message("No command with that name exists.");
                     System.exit(0);

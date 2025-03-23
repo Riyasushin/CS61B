@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static gitlet.Branch.BRANCH_AREA;
@@ -426,7 +427,7 @@ public class Repository {
      *
      * @param newCommit the commit of newBranch checking with
      * @param WorkingDir cur CWD
-     * @return
+     * @return true if all files are overwritten and commited
      */
     private static boolean filesBeOverwrittedHasCommited(final Commit newCommit, final File WorkingDir) {
         File[] curFiles = WorkingDir.listFiles();
@@ -549,5 +550,158 @@ public class Repository {
                 System.exit(0);
             }
         }
+    }
+
+    public static void merge(final String branchNameForMerge) {
+        if (stageController.canCommit()) {
+            message("You have uncommitted changes.");
+            System.exit(0);
+        }
+        final File newBranchFile = Utils.join(BRANCH_AREA, branchNameForMerge);
+        if (!newBranchFile.exists()) {
+            message("A branch with that name does not exist.");
+            System.exit(0);
+        }
+        final Branch newBranchForMerge = Branch.loadBranch(newBranchFile);
+        if (newBranchForMerge.getBranchName().equals(curBranch.getBranchName())) {
+            message("Cannot merge a branch with itself.");
+            System.exit(0);
+        }
+
+        /// search for the split point
+        final Commit splitPoint = Commit.findSplitPoint(headCommit, newBranchForMerge.getCommitPointed());
+        if (splitPoint.equals(newBranchForMerge.getCommitPointed())) {
+            message("Given branch is an ancestor of the current branch.");
+            System.exit(0);
+        } else if (splitPoint.equals(headCommit)) {
+            message("Current branch fast-forwarded.");
+            System.exit(0);
+        }
+
+        /*
+         If an untracked file in the current commit would be overwritten or deleted by the merge,
+          print There is an untracked file in the way;
+          delete it, or add and commit it first.
+          and exit;
+        */
+        if (!filesBeOverwrittedHasCommited(newBranchForMerge.getCommitPointed(), CWD)) {
+            message("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.exit(0);
+
+        }
+
+        /*
+        给定分支中修改过，但在当前分支中没有修改过 更改为在给定分支中的版本 自动暂存
+        当前分支中修改过，在分割点之后没有在给定分支中修改过，保持原样。
+        任何在当前分支和给定分支中被以相同方式修改过的文件（即两个文件现在具有相同的内容或都被删除了），在合并时都将保持不变
+        在分割点时不存在, 只存在于当前分支中, 应保持原样
+        任何在分割点不存在,且仅在给定分支中存在, 都应签出并暂存。
+        在分割点存在、在给定分支中未被修改、但在当前分支中不存在的文件都应保持不存在。
+
+        在当前分支和给定分支中以不同方式修改,
+            两个文件的内容都发生了改变，且与其他文件不同；
+            或者一个文件的内容发生了改变，而另一个文件被删除；
+            或者该文件在分割点时不存在，但在给定分支和当前分支中具有不同的内容。
+
+            <<<<<<< HEAD
+            contents of file in current branch
+            =======
+            contents of file in given branch
+            >>>>>>>
+        如果合并遇到冲突，则在终端（而不是日志）上打印 Encountered a merge conflict.
+         */
+        final Set<String> setsOfCurData = headCommit.getMetaDataNameList(); /// relative
+        final Set<String> setsOfNewData = newBranchForMerge.getCommitPointed().getMetaDataNameList(); /// relative
+        final Set<String> setsOfSplitData = splitPoint.getMetaDataNameList(); /// relative
+        final List<String> fullNameFilesInCWD = Utils.plainFilenamesInWithNullDull(CWD);
+
+        final Commit newCommit = newBranchForMerge.getCommitPointed();
+
+        for (final String fileName : fullNameFilesInCWD) {
+            final String relativeFilePath = Repository.getRelativePathWitCWD(new File(fileName));
+            final File fileInCWD = Utils.join(CWD, relativeFilePath);
+            if (setsOfCurData.contains(relativeFilePath)) {
+                if (setsOfSplitData.contains(relativeFilePath)) {
+                    if (setsOfNewData.contains(relativeFilePath)) {
+                        /// new has it;ancestor has it;Cur has it
+                        /// OK
+                        /// 两个文件现在具有相同的内容
+                        ///     or 两个文件的内容都发生了改变，且与其他文件不同
+                        ///     or 一个文件的内容发生了改变，而另一个文件同
+                        final String curSHA1 = headCommit.getMetaDataByFilename(relativeFilePath).getSHA1();
+                        final String newSHA1 = newCommit.getMetaDataByFilename(relativeFilePath).getSHA1();
+                        final String splitSHA1 = splitPoint.getMetaDataByFilename(relativeFilePath).getSHA1();
+                        if (curSHA1.equals(newSHA1)) {
+                            /// 两个文件现在具有相同的内容
+                            /// OK
+                        } else {
+                            if (newSHA1.equals(splitSHA1)) {
+                                /// OK
+                            } else {
+                                if (curSHA1.equals(splitSHA1)) {
+                                    /// OK
+                                    checkoutFileName(relativeFilePath, newCommit);
+                                    stageController.add(fileInCWD, headCommit);
+                                } else {
+                                    /// OK
+                                    conflict(relativeFilePath, headCommit, newCommit);
+                                }
+                            }
+                        }
+
+                    } else {
+                        /// new not it;ancestor has it;Cur has it
+                        /// 给定分支中修改过，但在当前分支中没有修改过 更改为在给定分支中的版本 自动暂存
+                        /// OK
+                        checkoutFileName(relativeFilePath, newCommit);
+                        stageController.add(fileInCWD, headCommit);
+                    }
+                } else {
+                    if (setsOfNewData.contains(relativeFilePath)) {
+                        /// new has it;ancestor not it;Cur has it
+                        /// OK
+                        final String curSHA1 = headCommit.getMetaDataByFilename(relativeFilePath).getSHA1();
+                        final String newSHA1 = newCommit.getMetaDataByFilename(relativeFilePath).getSHA1();
+                        if (newSHA1.equals(curSHA1)) {
+                            /// same
+                            /// OK
+                        } else {
+                            conflict(relativeFilePath, headCommit, newCommit);
+                        }
+                    }
+                }
+            } else {
+                if (setsOfSplitData.contains(relativeFilePath)) {
+                    if (setsOfNewData.contains(relativeFilePath)) {
+                        /// new has it;ancestor has it;Cur not it
+                        conflict(relativeFilePath, headCommit, newCommit);
+                    }
+                } else {
+                    if (setsOfNewData.contains(relativeFilePath)) {
+                        /// new has it;ancestor not it;Cur not it
+                        /// 签出并暂存
+                        /// OK
+                        checkoutFileName(relativeFilePath, newCommit);
+                        stageController.add(fileInCWD, headCommit);
+                        /// addFileToStage also OK
+                    }
+                }
+            }
+        }
+
+
+    }
+
+    /**
+     * deal wit conflict
+     * @param relativeFilePath relative path, for search and ...
+     * @param headCommit head commit, the curCommit
+     * @param newCommit new commit, the toMergeCommit
+     */
+    private static void conflict(String relativeFilePath, Commit headCommit, Commit newCommit) {
+//        两个文件的内容都发生了改变，且与其他文件不同；
+//        或者一个文件的内容发生了改变，而另一个文件被删除；
+//        或者该文件在分割点时不存在，但在给定分支和当前分支中具有不同的内容。
+        /// TODO: 暂存冲突文件，并打印冲突信息
     }
 }

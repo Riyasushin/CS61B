@@ -5,13 +5,8 @@ package gitlet;
 //import org.checkerframework.checker.units.qual.C;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.Serializable;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.*;
 
-import static gitlet.Branch.BRANCH_AREA;
 import static gitlet.Utils.readObject;
 
 
@@ -76,6 +71,14 @@ public class Commit implements  Dumpable {
 
 
         return commits;
+    }
+
+    /**
+     * fine the common ancestor of A and B
+     * @return  the common ancestor of A and B
+     */
+    public static Commit findSplitPoint(Commit A, Commit B) {
+        /// TODO
     }
 
     /// metadata TODO
@@ -304,5 +307,37 @@ public class Commit implements  Dumpable {
             final File srcFile = value.getFilePathOfBlob();
             Utils.copyFileFromSrcToDist(srcFile, distFile);
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final Commit other = (Commit) o;
+        boolean same = this.timeStamp == other.timeStamp
+                && this.message.equals(other.message)
+                && this.id.equals(other.id);
+        if (!same) return false;
+        same = (this.parents == null && other.parents == null) || (this.parents.size() == other.parents.size());
+        if (!same) return false;
+        for (int i = 0, len = this.parents.size(); i < len; i++) {
+            if (!this.parents.get(i).equals(other.parents.get(i))) {
+                return false;
+            }
+        }
+        same = (this.metadataMap == null && other.metadataMap == null) || (this.metadataMap.size() == other.metadataMap.size());
+        if (!same) return false;
+        for (String key : this.metadataMap.keySet()) {
+            if (!this.metadataMap.get(key).equals(other.metadataMap.get(key))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return (message + timeStamp + id).hashCode();
     }
 }

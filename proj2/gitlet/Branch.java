@@ -70,7 +70,6 @@ public class Branch implements Serializable, Dumpable {
      * @return  一个根据文件内容得到的Branch的对象
      */
     public static Branch loadBranch(final File BranchPath) {
-        /// TODO
         return Utils.readObject(BranchPath, Branch.class);
     }
 
