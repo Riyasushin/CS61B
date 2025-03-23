@@ -62,12 +62,14 @@ public class Repository {
     private static final File HEAD_FILE = Utils.join(GITLET_DIR, "HEAD");
 
     /// 指向curBranch
-    private static final File CUR_BRANCH = Utils.join(GITLET_DIR, "CUR_BRANCH");
+    public static final File CUR_BRANCH = Utils.join(GITLET_DIR, "CUR_BRANCH");
 
 
     /* TODO: fill in the rest of this class. */
     public static boolean hasInited() {
-        return GITLET_DIR.exists();
+        return GITLET_DIR.exists() && HEAD_FILE.exists()
+                && CUR_BRANCH.exists() && Stage.stagesDir.exists() && Stage.STAGE_FILE.exists()
+                && COMMIT_AREA.exists() && BRANCH_AREA.exists();
     }
 
     /**
@@ -109,7 +111,7 @@ public class Repository {
     }
 
     private static boolean setupCommit() {
-        setCurCommit(Commit.createInitCommit());
+        headCommit = Commit.createInitCommit();
         headCommit.save();
         updateHEADCommitTo(headCommit);
         return true; /// 似乎没有必要这个 TODO
@@ -158,11 +160,6 @@ public class Repository {
     private static void setCurBranch(final Branch newBranch) {
         curBranch = newBranch;
     }
-
-    private static void setCurCommit(final Commit newCommit) {
-        headCommit = newCommit;
-    }
-
 
     public static boolean checkFileExist(final String name) {
         File file4Add = join(CWD, name);
@@ -306,7 +303,6 @@ public class Repository {
 //        headCommit.dump();
         child.save();
         headCommit = child;
-
         /// saveHEAD
         Utils.writeObjectToFileWithFileNotExistFix(HEAD_FILE, headCommit);
     }
@@ -404,7 +400,7 @@ public class Repository {
 //            message("%s\n%s\n%s\n%s\n", (filesBeOverwrittedHasCommited(newBranch, CWD) ? "Y" : "N"), stageController.getModifiedFiles(), stageController.getRemovedFiles(), stageController.getAddedFiles());
 //        }
         /// 未被跟踪，并且会被签出覆盖!!! TODO  0323
-        if (stageController.canCheckoutBranch() && filesBeOverwrittedHasCommited(newBranch, CWD)) { /// HARD!!
+        if (stageController.canCheckoutBranch() && filesBeOverwrittedHasCommited(newBranch.getCommitPointed(), CWD)) { /// HARD!!
 
 
 
@@ -428,11 +424,11 @@ public class Repository {
 
     /**
      *
-     * @param newBranch the branch checking with
+     * @param newCommit the commit of newBranch checking with
      * @param WorkingDir cur CWD
      * @return
      */
-    private static boolean filesBeOverwrittedHasCommited(final Branch newBranch, final File WorkingDir) {
+    private static boolean filesBeOverwrittedHasCommited(final Commit newCommit, final File WorkingDir) {
         File[] curFiles = WorkingDir.listFiles();
 
 //        if (newBranch.getBranchName().equals("master")) {
@@ -452,7 +448,7 @@ public class Repository {
             if (curFile.isFile()) {
 //                filesOverWritted(Strs)
                 final String fileRelativePath = Repository.getRelativePathWitCWD(curFile);
-                MetaData metaDataOfBranch = newBranch.getCommitPointed().getMetaDataByFilename(fileRelativePath);
+                MetaData metaDataOfBranch = newCommit.getMetaDataByFilename(fileRelativePath);
                 if (metaDataOfBranch != null) {
                     /// will be overwrite
                     MetaData commitData = headCommit.getMetaDataByFilename(fileRelativePath);
@@ -464,7 +460,7 @@ public class Repository {
                     }
                 }
             } else {
-                if (!filesBeOverwrittedHasCommited(newBranch, curFile)) {
+                if (!filesBeOverwrittedHasCommited(newCommit, curFile)) {
                     return false;
                 }
             }
@@ -538,6 +534,20 @@ public class Repository {
     }
 
     public static void resetByCommitID(final String commitID) {
+        final Commit neededCommit = Commit.loadCommitByID(commitID);
+        if (neededCommit == null) {
+            Utils.message("No commit with that id exists.");
+            System.exit(0);
+        } else {
+            if (filesBeOverwrittedHasCommited(neededCommit, CWD)) {
+                neededCommit.rollBack(CWD);
+                updateHEADCommitTo(neededCommit);
 
+                curBranch.updateCommitTo(neededCommit);
+            } else {
+                message("There is an untracked file in the way; delete it, or add and commit it first.");
+                System.exit(0);
+            }
+        }
     }
 }

@@ -37,6 +37,7 @@ class GitletException extends RuntimeException {
     static void checkGitInit() {
         if (!Repository.hasInited()) {
             message("Not in an initialized Gitlet directory.");
+            System.exit(0);
         }
     }
 

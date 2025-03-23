@@ -39,7 +39,7 @@ public class Branch implements Serializable, Dumpable {
     public void updateCommitTo(final Commit newCommit) {
         this.pointerTo = newCommit;
         final File thisFilePath = Utils.join(BRANCH_AREA, this.branchName);
-        this.saveTo(thisFilePath);
+        this.saveTo(Repository.CUR_BRANCH);
     }
 
     public Commit getCommitPointed() {

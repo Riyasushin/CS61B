@@ -36,6 +36,7 @@ public class Commit implements  Dumpable {
      * The hashValue and unique name of this commit
      */
     private String id;
+    private static final int ID_SHORT_LENGTH = 8;
     /**
      * The father commit of this commit, may not single
      */
@@ -189,17 +190,6 @@ public class Commit implements  Dumpable {
         return Commit.createCommit(messageInfo, timeT, parentsT, cloneMetaData);
     }
 
-
-    /**
-     * TODO: 返回的是简写不是全部，前6个
-     *
-     * @return 该commit的特征值，即它的名称的简写
-     */
-    public String getSimpleID() {
-        return id.substring(0, 7);
-    }
-
-
     public String getFullID() {
         return id;
     }
@@ -249,7 +239,7 @@ public class Commit implements  Dumpable {
      * 把本对象存为文件
      */
     public void save() {
-        final File commitFileSubDir = Utils.join(COMMIT_AREA, this.getFullID().substring(0, 6));
+        final File commitFileSubDir = Utils.join(COMMIT_AREA, this.getFullID().substring(0, ID_SHORT_LENGTH));
         if (!commitFileSubDir.exists()) {
             commitFileSubDir.mkdirs();
         }
@@ -265,11 +255,11 @@ public class Commit implements  Dumpable {
      *          null, if not exists
      */
     static Commit loadCommitByID(final String id) {
-        final File commitFileSubDir = Utils.join(COMMIT_AREA, id.substring(0, 6));
+        final File commitFileSubDir = Utils.join(COMMIT_AREA, id.substring(0, ID_SHORT_LENGTH));
         if (!commitFileSubDir.exists()) {
             return null;
         }
-        if (id.length() == 6) {
+        if (id.length() == ID_SHORT_LENGTH) {
             if (commitFileSubDir.isDirectory() && commitFileSubDir.list().length == 1) {
                 return readObject(commitFileSubDir.listFiles()[0], Commit.class);
             } else {
