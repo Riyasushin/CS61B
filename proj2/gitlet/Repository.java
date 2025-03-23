@@ -86,6 +86,11 @@ public class Repository {
                 return false;
         }
 
+        if (!MetaData.BLOB_PATH.exists()) {
+            if (!MetaData.BLOB_PATH.mkdir())
+                return false;
+        }
+
         /// objects
         if (!MetaData.BLOB_PATH.exists()) {
             if (!MetaData.BLOB_PATH.mkdir())
@@ -112,14 +117,13 @@ public class Repository {
 
     private static boolean setupBranch() {
         setCurBranch(Branch.createInitBranch(headCommit));
-        curBranch.saveTo(BRANCH_AREA);
+        curBranch.saveTo(CUR_BRANCH);
         return true;
     }
 
     private static boolean setupStage() {
 
         stageController = new Stage();
-        stageController.clear();
         stageController.save();
 
         return true;
@@ -145,7 +149,8 @@ public class Repository {
         headCommit = readObject(HEAD_FILE, Commit.class);
 
         stageController = Stage.loadStage();
-        stageController.checkUntracked(headCommit, CWD);
+
+        stageController.checkStatus(headCommit, CWD);
 
 
     }
@@ -175,9 +180,9 @@ public class Repository {
             System.exit(0);
         }
 
-        File curFilePosition = Utils.join(CWD, filename4Stage);
+        final File curFilePosition = Utils.join(CWD, filename4Stage);
 
-        stageController.tryAdd(curFilePosition, headCommit);
+        stageController.add(curFilePosition, headCommit);
     }
 
     private static Commit getCommitRecur(String Filter) {
@@ -186,11 +191,10 @@ public class Repository {
     }
 
     public static void log_status() {
-        /// TODO
 
         /// branches
         System.out.println("=== Branches ===");
-        List<String> allBranchName = Utils.plainFilenamesIn(COMMIT_AREA);
+        List<String> allBranchName = Utils.plainFilenamesIn(BRANCH_AREA);
         assert allBranchName != null;
         for (String bhName : allBranchName) {
             if (bhName.equals(curBranch.getBranchName())) {
@@ -201,7 +205,7 @@ public class Repository {
         }
         System.out.print('\n');
 
-        stageController.checkUntracked(headCommit, CWD);
+        stageController.checkStatus(headCommit, CWD);
         /// staged files
         System.out.println("=== Staged Files ===");
         final Set<File> added = stageController.getAddedFiles();
@@ -220,12 +224,30 @@ public class Repository {
         for (File f : rmed) {
             message(f.getName());
         }
+        System.out.print("\n");
 
         /// modifications not staged
         System.out.println("=== Modifications Not Staged For Commit ===");
 
+//        final Set<File> removedNotStaged  = stageController.getRemovedNotStaged();
+//        for (File f : removedNotStaged) {
+//            message(f.getName() + " (deleted)");
+//        }
+//
+//        final Set<File> modifiedNotStaged = stageController.getModifiedNotStaged();
+//        for (File f : modifiedNotStaged) {
+//            message(f.getName() + " (modified)");
+//        }
+        System.out.print("\n");
+
+
         /// untracked files
         System.out.println("=== Untracked Files ===");
+//        final Set<File> untracked = stageController.getUntracked();
+//        for (File f : untracked) {
+//            message(f.getName());
+//        }
+        System.out.print("\n");
 
     }
 
@@ -246,19 +268,23 @@ public class Repository {
 
 
     static void global_log() {
-        List<String> allCommitsID = Utils.plainFilenamesIn(COMMIT_AREA);
-        for (String id : allCommitsID) {
-            Commit cmt = Commit.loadCommitByID(id);
+        Set<File> allCommitsID = Commit.getAllCommits();
+        for (final File id : allCommitsID) {
+            Commit cmt = Commit.loadCommitByID(id.getName());
             System.out.println("===");
             cmt.log();
         }
     }
 
     static void find(final String msg) {
-        List<String> allCommitsID = Utils.plainFilenamesIn(COMMIT_AREA);
+
+        Set<File> allCommitsID = Commit.getAllCommits();
         List<String> matchedIDs = new ArrayList<>();
-        for (String id : allCommitsID) {
-            Commit cmt = Commit.loadCommitByID(id);
+        for (File commitFile : allCommitsID) {
+            Commit cmt = Commit.loadCommitByID(commitFile.getName());
+            if (cmt == null) {
+                continue;
+            }
             if (msg.equals(cmt.getMessage())) {
                 matchedIDs.add(cmt.getFullID());
             }
@@ -276,6 +302,8 @@ public class Repository {
 
     public static void updateHEADCommitTo(final Commit child) {
         /// update HEAD to Child
+//        child.dump();
+//        headCommit.dump();
         child.save();
         headCommit = child;
 
@@ -283,9 +311,21 @@ public class Repository {
         Utils.writeObjectToFileWithFileNotExistFix(HEAD_FILE, headCommit);
     }
 
+    /**
+     *
+     * @param messageInformation information
+     */
     public static void makeCommit(final String messageInformation) {
         /// the date and time and message and id
+        if (messageInformation.isEmpty()) {
+            message("Please enter a commit message.");
+            System.exit(0);
+        }
 
+        if (!stageController.canCommit()) {
+            message("No changes added to the commit.");
+            System.exit(0);
+        }
         /// 从缓存区中提取修改的信息 创建childCommit 修改headCommit
         final Commit childCommit = headCommit.produceChildCommit(stageController, messageInformation);
 
@@ -294,11 +334,11 @@ public class Repository {
         curBranch.updateCommitTo(headCommit);
         curBranch.saveTo(CUR_BRANCH);
         /// 清空stage
-        stageController.clear();
+        stageController.clearCommited();
 
     }
 
-    static void createNewBranchAsCurBranch(final String branchName) {
+    static void createNewBranch(final String branchName) {
         /// 茶宠
         /// 新的，作为主
         /// 新的，指向headCommit
@@ -310,11 +350,7 @@ public class Repository {
             System.exit(0);
         }
         Branch newBranch = Branch.createBranch(branchName, headCommit);
-        newBranch.markAsCurBranch();
-        curBranch.unmarkd();
-        curBranch.saveTo(BRANCH_AREA);
-        newBranch.saveTo(BRANCH_AREA);
-        curBranch = newBranch;
+        newBranch.saveTo(CUR_BRANCH);
     }
 
     public static void rm(final String fileName) {
@@ -322,20 +358,19 @@ public class Repository {
 
         if (headCommit.findByName(curFilePath)) {
             /// 在commit中有
-            /// remove it from the working directory, 这一步被stageArea处理了
-            stageController.add2RmList(curFilePath);
-            ///
+            /// remove it from the working directory, 这一步被stageArea处理了 TODO
+            stageController.addToRemove(curFilePath);
+            if (curFilePath.exists()) {
+                curFilePath.delete();
+            }
 
         } else {
             /// 在commit中无
-            if (stageController.stagedForAdd(curFilePath)) {
-                stageController.removeFileFromStage(curFilePath);
-            } else {
+            if (!stageController.removeFromStage(curFilePath)) {
                 message("No reason to remove the file.");
                 System.exit(0);
             }
         }
-
     }
 
 
@@ -363,28 +398,78 @@ public class Repository {
             System.exit(0);
         }
 
-        stageController.checkUntracked(headCommit, CWD);
+        stageController.checkStatus(headCommit, CWD);
 
-        if (stageController.isDeepTidy()) {
+//        if (newBranch.getBranchName().equals("master")) {
+//            message("%s\n%s\n%s\n%s\n", (filesBeOverwrittedHasCommited(newBranch, CWD) ? "Y" : "N"), stageController.getModifiedFiles(), stageController.getRemovedFiles(), stageController.getAddedFiles());
+//        }
+        /// 未被跟踪，并且会被签出覆盖!!! TODO  0323
+        if (stageController.canCheckoutBranch() && filesBeOverwrittedHasCommited(newBranch, CWD)) { /// HARD!!
+
+
 
             /// branch checkout
             curBranch.unmarkd();
             newBranch.markAsCurBranch();
-            curBranch.saveTo(BRANCH_AREA);
-            curBranch.saveTo(BRANCH_AREA);
+            curBranch.saveTo(CUR_BRANCH);
+            newBranch.saveTo(CUR_BRANCH);
             curBranch = newBranch;
+            updateHEADCommitTo(curBranch.getCommitPointed());
 
+            Utils.ClearDir(CWD);
             curBranch.rollBack(CWD);
 
-            /// TODO  Stage中没有存
-            stageController.clear();
-
-
-
+            stageController.clearTotally();
         } else {
             message("There is an untracked file in the way; delete it, or add and commit it first.");
             System.exit(0);
         }
+    }
+
+    /**
+     *
+     * @param newBranch the branch checking with
+     * @param WorkingDir cur CWD
+     * @return
+     */
+    private static boolean filesBeOverwrittedHasCommited(final Branch newBranch, final File WorkingDir) {
+        File[] curFiles = WorkingDir.listFiles();
+
+//        if (newBranch.getBranchName().equals("master")) {
+//            message("\n");
+//            for (File curFile : curFiles) {
+//                message("%s", curFile.toString());
+//            }
+//            log_firstParents();
+//            message("\n");
+//
+//        }
+
+        for (File curFile : curFiles) {
+            if (curFile.getName().equals(".gitlet")) {
+                continue;
+            }
+            if (curFile.isFile()) {
+//                filesOverWritted(Strs)
+                final String fileRelativePath = Repository.getRelativePathWitCWD(curFile);
+                MetaData metaDataOfBranch = newBranch.getCommitPointed().getMetaDataByFilename(fileRelativePath);
+                if (metaDataOfBranch != null) {
+                    /// will be overwrite
+                    MetaData commitData = headCommit.getMetaDataByFilename(fileRelativePath);
+                    final String sha1Cur = Utils.sha1(curFile);
+                    if (! (commitData != null && commitData.getSHA1().equals(sha1Cur))) {
+                        /// not commited
+                    /// HARD type a ugly ! and ......
+                        return false;
+                    }
+                }
+            } else {
+                if (!filesBeOverwrittedHasCommited(newBranch, curFile)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     public static void checkoutByIdName(final String commitID, final String filename) {
@@ -409,7 +494,7 @@ public class Repository {
      * @param fileRelativePath the file for change to the curCommit, the relative path to CWD!!!
      */
     public static void checkoutFileName(String fileRelativePath, final Commit workingCommit) {
-        /// TODO
+
         MetaData fileData = workingCommit.getMetaDataByFilename(fileRelativePath);
         if (fileData == null) {
             Utils.message("File does not exist in that commit. ");
@@ -417,11 +502,12 @@ public class Repository {
         }
 
         final File backFile = fileData.getFilePathOfBlob();
+//        Utils.message(backFile.getAbsolutePath());
         final File distFile = Utils.join(CWD, fileRelativePath);
         Utils.moveOroverwriteFileFromSrcToDist(backFile, distFile);
 
         /// not stage
-        stageController.tryForgetFile(distFile);
+        stageController.removeFromStage(distFile);
     }
 
     public static String getRelativePathWit(final File filePath, final File stagesDir) {
@@ -436,5 +522,22 @@ public class Repository {
             // 若跨文件系统，返回绝对路径
             return fileAbsPath.toString();
         }
+    }
+
+    public static void removeBranchByName(final String branchName) {
+        final File newBranchFile = Utils.join(BRANCH_AREA, branchName);
+        if (!newBranchFile.exists()) {
+            message("A branch with that name does not exist.");
+            System.exit(0);
+        }
+        if (branchName.equals(curBranch.getBranchName())) {
+            message("Cannot remove the current branch.");
+            System.exit(0);
+        }
+        newBranchFile.delete();
+    }
+
+    public static void resetByCommitID(final String commitID) {
+
     }
 }

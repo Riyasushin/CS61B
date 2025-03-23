@@ -31,7 +31,7 @@ public class Branch implements Serializable, Dumpable {
         Branch bh = new Branch();
         bh.isHEADBranch = false;
         bh.branchName = bhName;
-        bh.pointerTo = commitToPoint;
+        bh.pointerTo = commitToPoint.clone();
 
         return bh;
     }
@@ -50,24 +50,17 @@ public class Branch implements Serializable, Dumpable {
         return branchName;
     }
 
-
-    public static Branch changeBranchTo(String anotherBranchName) {
-        /// TODO
-        return null;
-    }
-
     /**
      *
-     * @param filePath 要保存的文件夹的路径的File
+     * @param headFilePath 要保存的文件夹的路径的File
      */
-    public void saveTo(final File filePath) {
+    public void saveTo(final File headFilePath) {
         /// TODO: 把这个分支保存到文件中
-        final File branchFile = Utils.join(filePath, branchName);
+        final File branchFile = Utils.join(Branch.BRANCH_AREA, branchName);
         Utils.writeObjectToFileWithFileNotExistFix(branchFile, this);
 
         if (this.isHEADBranch) {
-            final File headBranchFile = Utils.join(filePath, "head");
-            Utils.writeObjectToFileWithFileNotExistFix(headBranchFile, this);
+            Utils.writeObjectToFileWithFileNotExistFix(headFilePath, this);
         }
     }
 
@@ -95,6 +88,8 @@ public class Branch implements Serializable, Dumpable {
      */
     public void rollBack(final File workingDir) {
         /// TODO
+        pointerTo.rollBack(workingDir);
+
 
     }
 

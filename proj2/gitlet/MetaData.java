@@ -4,9 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 
-
-public class MetaData {
+/// HARD :: here Dumpable lost my time!!!
+public class MetaData implements Dumpable {
 
     public static File BLOB_PATH = Utils.join(Repository.GITLET_DIR, "blob");
 
@@ -29,6 +30,10 @@ public class MetaData {
 
     private void saveNewFileBlob() {
         final File blobPath = Utils.join(BLOB_PATH, blobName, String.valueOf(version));
+//        Utils.message(blobPath.toString());
+        if (!blobPath.exists()) {
+            blobPath.mkdirs();
+        }
         try {
             Files.copy(sourceFile.toPath(), blobPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
@@ -46,21 +51,27 @@ public class MetaData {
         sourceFile = filepath;
         sha1ID = Utils.sha1(filepath);
 
-
-        /// 处理和上次commit 一样不一样
-        if (parentCommit == null) {
-            /// 特判root,其实没有必要，因为root根本不会调用这个
-            version = 0;
-        } else {
-            final MetaData dataofOldVersion = parentCommit.getMetaDataByFilename(blobName);
-            if (dataofOldVersion == null) {
-                /// add
-                version = 0;
-            } else {
-                /// modify
-                version = dataofOldVersion.getVersion() + 1;
+        final File blobDirPath = Utils.join(BLOB_PATH, blobName);
+        int lastVersion = -1;
+        if (blobDirPath.exists()) {
+            List<String> oldVersions = Utils.plainFilenamesIn(blobDirPath);
+            if (oldVersions != null) {
+                lastVersion = Utils.findMaxNumber(oldVersions);
             }
         }
+
+        version = lastVersion + 1;
+//        System.out.print(filepath.toString());
         saveNewFileBlob();
+    }
+
+    @Override
+    public String toString() {
+        return " " + getSHA1() + " " + blobName + " " + String.valueOf(version) + " " + sourceFile.toString();
+    }
+
+    @Override
+    public void dump() {
+
     }
 }

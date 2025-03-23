@@ -82,18 +82,26 @@ public class Main {
                     break;
                 }
                 case "checkout": {
-                    GitletException.checkOfOperands(args.length, 2, 1);
+                    GitletException.checkOfOperands(args.length, 3, 2, 4);
                     switch (args.length) {
                         case 2: {
-                            /// TODO
                             Repository.checkoutBranch(args[1]);
                             break;
                         }
                         case 4: {
+                            /// HARD ,,,, lu bang xing
+                            if (!args[2].equals("--")) {
+                                message("Incorrect operands.");
+                                System.exit(0);
+                            }
                             Repository.checkoutByIdName(args[1], args[3]);
                             break;
                         }
                         case 3: {
+                            if (!args[1].equals("--")) {
+                                message("Incorrect operands.");
+                                System.exit(0);
+                            }
                             Repository.checkoutFileName(args[2], Repository.getHeadCommit());
                             break;
                         }
@@ -103,13 +111,19 @@ public class Main {
                 case "branch": {
                     GitletException.checkOfOperands(args.length, 2);
                     final String branchName = args[1];
-                    Repository.createNewBranchAsCurBranch(branchName);
+                    Repository.createNewBranch(branchName);
                     break;
                 }
-                case "rm-branch":
+                case "rm-branch": {
+                    GitletException.checkOfOperands(args.length, 2);
+                    Repository.removeBranchByName(args[1]);
                     break;
-                case "reset":
+                }
+                case "reset": {
+                    GitletException.checkOfOperands(args.length, 2);
+                    Repository.resetByCommitID(args[1]);
                     break;
+                }
                 case "merge":
                     break;
                 default:

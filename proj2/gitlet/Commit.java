@@ -2,17 +2,14 @@ package gitlet;
 
 // TODO: any imports you need here
 
-import org.checkerframework.checker.units.qual.C;
+//import org.checkerframework.checker.units.qual.C;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static gitlet.Branch.BRANCH_AREA;
 import static gitlet.Utils.readObject;
@@ -26,7 +23,7 @@ import static gitlet.Utils.readObject;
  *  Commit is immutable!!!!!
  *  @author RiJoshin
  */
-public class Commit implements Serializable, Dumpable {
+public class Commit implements  Dumpable {
     /**
      * TODO: add instance variables here.
      * List all instance variables of the Commit class here with a useful
@@ -57,18 +54,46 @@ public class Commit implements Serializable, Dumpable {
      */
     private Map<String, MetaData> metadataMap;
 
+    /**
+     * get all Commits
+     * @return
+     */
+    public static Set<File> getAllCommits() {
+        Set<File> commits = new TreeSet<>();
+        File[] commitSubDirs = COMMIT_AREA.listFiles();
+        if (commitSubDirs != null) {
+            for (final File subDir : commitSubDirs) {
+                if (subDir.isDirectory()) {
+                    File[] commitFiles = subDir.listFiles();
+                    if (commitFiles == null) {
+                        continue;
+                    }
+                    commits.addAll(Arrays.asList(commitFiles));
+                }
+            }
+        }
+
+
+        return commits;
+    }
+
     /// metadata TODO
 
     /**
      * relative path (str) -> data
-     * @param name
+     * @param name name should be the relative path to (CWD / storageDir)
      * @return null if not find
      */
     public MetaData getMetaDataByFilename(final String name) {
         return metadataMap.getOrDefault(name, null);
     }
 
+    /**
+     *
+     * @return empty Set if
+     */
     public Set<String> getMetaDataNameList() {
+        /// ATTENTION!!!
         return metadataMap.keySet();
     }
 
@@ -76,7 +101,11 @@ public class Commit implements Serializable, Dumpable {
      * 返回是否是merge commit, 这由父亲节点的数量判断，多余一个就是merge
      */
     public boolean isMerge() {
-        return parents.size() > 1;
+        if (parents == null) {
+            return false;
+        } else {
+            return parents.size() > 1;
+        }
     }
 
     /**
@@ -84,7 +113,7 @@ public class Commit implements Serializable, Dumpable {
      * @return True if this is root Commit; false if it has parent.
      */
     public boolean hasDad() {
-        return !parents.isEmpty();
+        return !(parents == null);  /// HARD nullptr!!!
     }
     public String getDadID() {
         return parents.get(0);
@@ -97,24 +126,40 @@ public class Commit implements Serializable, Dumpable {
     private Commit() {
     }
 
+    @Override
+    public Commit clone() {
+        Commit ct = new Commit();
+        ct.id = this.id;
+        ct.parents = this.parents;
+        ct.timeStamp = this.timeStamp;
+        ct.message = this.message;
+        ct.metadataMap = Map.copyOf(metadataMap);
+        return ct;
+    }
+
     /**
      * 返回Init时候需要的commit
      *
      * @return
      */
     static Commit createInitCommit() {
-        return Commit.createCommit("initial commit", 0, null, null);
+        Map<String, MetaData> tidyDataSet = new TreeMap<>();
+        return Commit.createCommit(
+                "initial commit", 0, null, tidyDataSet);
     }
 
     /// 根据提供的信息返回关联好的commit
     static Commit createCommit(final String messageT, final long timeT, final List<String> parentsT, final Map<String, MetaData> datas) {
         Commit ct = new Commit();
-        ct.parents = parentsT;
+        ct.parents = (parentsT == null ? null : new ArrayList<>(parentsT));
         ct.timeStamp = timeT;
         ct.message = (messageT == null? "" : messageT); /// 根据commit要求，一定不是null !
-        ct.metadataMap = datas;
+//        if (!datas.isEmpty()) {
+//            Utils.message(datas.toString());
+//        }
+        ct.metadataMap = Map.copyOf(datas);
 
-        ct.id = Utils.sha1((ct.parents == null ? "" : ct.parents), ct.timeStamp, ct.message, (ct.metadataMap == null ? " " : ct.metadataMap));
+        ct.id = Utils.sha1((ct.parents == null ? " " : ct.parents.toString()), String.valueOf(ct.timeStamp), ct.message, (ct.metadataMap == null ? " " : ct.metadataMap.toString()));
         return ct;
     }
 
@@ -123,7 +168,7 @@ public class Commit implements Serializable, Dumpable {
         /// TODO: 克隆父提交，根据Stage修改MetaData
         List<String> parentsT = new ArrayList<>();
         parentsT.add(this.id);
-        Map<String, MetaData> cloneMetaData = this.metadataMap;
+        Map<String, MetaData> cloneMetaData = new TreeMap<>(Map.copyOf(this.metadataMap));
         final Set<File> added = stageStatus.getAddedFiles();
         final Set<File> removed = stageStatus.getRemovedFiles();
         final Set<File> modified = stageStatus.getModifiedFiles();
@@ -138,6 +183,8 @@ public class Commit implements Serializable, Dumpable {
             cloneMetaData.put(Repository.getRelativePathWit(mdFile, Stage.stagesDir), new MetaData(mdFile, this));
         }
         long timeT = System.currentTimeMillis();
+
+//        Utils.message("\n%d \"%s\" %s\n ", timeT, messageInfo, cloneMetaData.toString());
 
         return Commit.createCommit(messageInfo, timeT, parentsT, cloneMetaData);
     }
@@ -195,13 +242,19 @@ public class Commit implements Serializable, Dumpable {
     @Override
     public void dump() {
         // TODO
+//        Utils.message("\n %s \n %s \n", Utils.join(COMMIT_AREA, this.getFullID()).toString(), metadataMap.toString());
     }
 
     /**
      * 把本对象存为文件
      */
     public void save() {
-        final File realFile = Utils.join(COMMIT_AREA, this.getFullID());
+        final File commitFileSubDir = Utils.join(COMMIT_AREA, this.getFullID().substring(0, 6));
+        if (!commitFileSubDir.exists()) {
+            commitFileSubDir.mkdirs();
+        }
+        final File realFile = Utils.join(commitFileSubDir, this.getFullID());
+//        System.out.println(realFile.toString());
         Utils.writeObjectToFileWithFileNotExistFix(realFile, this);
     }
 
@@ -212,33 +265,27 @@ public class Commit implements Serializable, Dumpable {
      *          null, if not exists
      */
     static Commit loadCommitByID(final String id) {
-        final File commitFile = Utils.join(COMMIT_AREA, id);
-        /// deal with fail error. if not exits, return null
-        if (!commitFile.exists()) {
+        final File commitFileSubDir = Utils.join(COMMIT_AREA, id.substring(0, 6));
+        if (!commitFileSubDir.exists()) {
             return null;
         }
-        return readObject(commitFile, Commit.class);
+        if (id.length() == 6) {
+            if (commitFileSubDir.isDirectory() && commitFileSubDir.list().length == 1) {
+                return readObject(commitFileSubDir.listFiles()[0], Commit.class);
+            } else {
+                return null;
+            }
+        } else {
+            final File commitFile = Utils.join(commitFileSubDir, id);
+            if (! commitFile.exists())  {
+                return null;
+            }
+            return readObject(commitFile, Commit.class);
+        }
+
     }
 
-    /**
-     * 深度比较一个文件的信息，通过SHA1
-     * @param filePath4Cmp
-     * @return  404 - 没有这个文件
-     *          400 - 请求与存储不一致
-     *          200 - 完全一致
-     */
-    public int cmpWithFile(final File filePath4Cmp) {
-        final MetaData trueVersion = getMetaDataByFilename(filePath4Cmp.getName());
-        if (trueVersion == null) return 404;
-        else {
-            String sha1OfNew = Utils.sha1(filePath4Cmp);
-            if (sha1OfNew.equals(trueVersion.getSHA1()) ) {
-                return 200;
-            } else {
-                return 200;
-            }
-        }
-    }
+
 
     /**
      * 通过查询metadataMap中有没有相对路径的string，查到说明有，没查到说明没
@@ -251,4 +298,21 @@ public class Commit implements Serializable, Dumpable {
     }
 
 
+    /**
+     * using stored blob rollback the workingDirectory
+     * @param workingDir CWD
+     */
+    public void rollBack(final File workingDir) {
+        /// clear the dir totally expect .gitlet
+        List<String> fileList = Utils.plainFilenamesIn(workingDir);
+        for (String fileName : fileList) {
+            Utils.restrictedDelete(Utils.join(workingDir, fileName));
+        }
+
+        for (MetaData value : metadataMap.values()) {
+            final File distFile = Utils.join(value.getName());
+            final File srcFile = value.getFilePathOfBlob();
+            Utils.copyFileFromSrcToDist(srcFile, distFile);
+        }
+    }
 }

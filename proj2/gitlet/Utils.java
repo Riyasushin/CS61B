@@ -20,9 +20,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Formatter;
-import java.util.List;
+import java.util.*;
 
 
 /** Assorted utilities.
@@ -48,6 +46,7 @@ class Utils {
                 if (val instanceof byte[]) {
                     md.update((byte[]) val);
                 } else if (val instanceof String) {
+                    /// here !!!! ONLY STRING!!!
                     md.update(((String) val).getBytes(StandardCharsets.UTF_8));
                 } else {
                     throw new IllegalArgumentException("improper type to sha1");
@@ -87,7 +86,7 @@ class Utils {
      *  if FILE was deleted, and false otherwise.  Refuses to delete FILE
      *  and throws IllegalArgumentException unless the directory designated by
      *  FILE also contains a directory named .gitlet. */
-    static boolean restrictedDelete(File file) {
+    static boolean restrictedDelete_USER(File file) {
         if (!(new File(file.getParentFile(), ".gitlet")).isDirectory()) {
             throw new IllegalArgumentException("not .gitlet working directory");
         }
@@ -97,6 +96,34 @@ class Utils {
             return false;
         }
     }
+    static boolean restrictedDelete(File file) {
+        // 检查文件路径上是否有 .gitlet 文件夹
+        File currentDir = file.getParentFile();
+        boolean gitletFound = false;
+
+        while (currentDir != null) {
+            File gitletDir = new File(currentDir, ".gitlet");
+//            System.out.println("Checking directory: " + gitletDir.getAbsolutePath());
+            if (gitletDir.isDirectory()) {
+                gitletFound = true;
+                break;
+            }
+            currentDir = currentDir.getParentFile();
+        }
+
+        if (!gitletFound) {
+            throw new IllegalArgumentException("not .gitlet working directory");
+        }
+        if (!file.isDirectory()) {
+            return file.delete();
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     *
+     */
 
     /** Deletes the file named FILE if it exists and is not a directory.
      *  Returns true if FILE was deleted, and false otherwise.  Refuses
@@ -199,6 +226,15 @@ class Utils {
         }
     }
 
+    static List<String> plainFilenamesInWithNullDull(File dir) {
+        List<String> tmpRes = plainFilenamesIn(dir);
+        if (tmpRes == null) {
+            return new ArrayList<>();
+        } else {
+            return tmpRes;
+        }
+    }
+
     /** Returns a list of the names of all plain files in the directory DIR, in
      *  lexicographic order as Java Strings.  Returns null if DIR does
      *  not denote a directory. */
@@ -285,6 +321,25 @@ class Utils {
         }
     }
 
+    static void copyFileFromSrcToDist(final File src, final File dist) {
+        if (src == null || dist == null) {
+            throw new IllegalArgumentException("Source and destination files cannot be null.");
+        }
+
+        // Convert File objects to Path objects
+        final Path srcPath = src.toPath();
+        final Path distPath = dist.toPath();
+
+        try {
+            // Copy the file from src to dist, overwriting if it already exists
+            Files.copy(srcPath, distPath, StandardCopyOption.REPLACE_EXISTING);
+//            System.out.println("File copied and overwritten successfully.");
+        } catch (IOException e) {
+            System.err.println("An error occurred while copying the file: " + e.getMessage());
+        }
+    }
+
+
     static void writeObjectToFileWithFileNotExistFix(final File filepath, Serializable obj) {
         if (!filepath.exists()) {
             try {
@@ -296,6 +351,26 @@ class Utils {
         writeObject(filepath, obj);
     }
 
+    public static void ClearDir(File stagesDir) {
+        // 检查目录是否存在
+        if (!stagesDir.exists()) {
+            return;
+        }
+        File[] files = stagesDir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory() && file.getName().equals(".gitlet")) {
+                    continue;
+                }
+                if (file.isDirectory()) {
+                    ClearDir(file);
+                    file.delete();
+                } else {
+                    file.delete();
+                }
+            }
+        }
+    }
     /* MESSAGES AND ERROR REPORTING */
 
     /** Return a GitletException whose message is composed from MSG and ARGS as
@@ -326,4 +401,16 @@ class Utils {
         ZonedDateTime zonedDateTime = ins.atZone(ZoneId.of("America/Los_Angeles"));
         return formatter.format(zonedDateTime);
     }
+
+    public static int findMaxNumber(List<String> stringList) {
+        // 使用流操作将字符串列表转换为整数流并找到最大值
+        OptionalInt maxOptional = stringList.stream()
+                .mapToInt(Integer::parseInt) // 将每个字符串解析为整数
+                .max(); // 找到最大值
+
+        // 如果找到最大值，返回它；否则返回一个默认值（比如 0）
+        return maxOptional.orElse(0);
+    }
+
+
 }
