@@ -3,10 +3,7 @@ package gitlet;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static gitlet.Branch.BRANCH_AREA;
 import static gitlet.Commit.COMMIT_AREA;
@@ -612,11 +609,15 @@ public class Repository {
          */
         final Set<String> setsOfCurData = headCommit.getMetaDataNameList(); /// relative
         final Set<String> setsOfNewData = newBranchForMerge.getCommitPointed().getMetaDataNameList(); /// relative
+        Set<String> dealed = new TreeSet<>();
         final Set<String> setsOfSplitData = splitPoint.getMetaDataNameList(); /// relative
         final List<String> fullNameFilesInCWD = Utils.plainFilenamesInWithNullDull(CWD);
 
         final Commit newCommit = newBranchForMerge.getCommitPointed();
+        boolean isConflict = false;
 
+//        message("%s\n", splitPoint.getMessage());
+//        message("%s\n", fullNameFilesInCWD.toString());
         for (final String fileName : fullNameFilesInCWD) {
             final String relativeFilePath = Repository.getRelativePathWitCWD(new File(fileName));
             final File fileInCWD = Utils.join(CWD, relativeFilePath);
@@ -645,6 +646,7 @@ public class Repository {
                                 } else {
                                     /// OK
                                     conflict(relativeFilePath, headCommit, newCommit);
+                                    isConflict = true;
                                 }
                             }
                         }
@@ -653,8 +655,14 @@ public class Repository {
                         /// new not it;ancestor has it;Cur has it
                         /// 给定分支中修改过，但在当前分支中没有修改过 更改为在给定分支中的版本 自动暂存
                         /// OK
-                        checkoutFileName(relativeFilePath, newCommit);
-                        stageController.add(fileInCWD, headCommit);
+                        final String curSHA1 = headCommit.getMetaDataByFilename(relativeFilePath).getSHA1();
+                        final String splitSHA1 = splitPoint.getMetaDataByFilename(relativeFilePath).getSHA1();
+                        if (curSHA1.equals(splitSHA1)) {
+                            Repository.rm(relativeFilePath);
+                        } else {
+                            conflict(relativeFilePath, headCommit, newCommit);
+                            isConflict = true;
+                        }
                     }
                 } else {
                     if (setsOfNewData.contains(relativeFilePath)) {
@@ -667,26 +675,66 @@ public class Repository {
                             /// OK
                         } else {
                             conflict(relativeFilePath, headCommit, newCommit);
+                            isConflict = true;
                         }
                     }
                 }
-            } else {
-                if (setsOfSplitData.contains(relativeFilePath)) {
-                    if (setsOfNewData.contains(relativeFilePath)) {
-                        /// new has it;ancestor has it;Cur not it
-                        conflict(relativeFilePath, headCommit, newCommit);
-                    }
-                } else {
-                    if (setsOfNewData.contains(relativeFilePath)) {
-                        /// new has it;ancestor not it;Cur not it
-                        /// 签出并暂存
-                        /// OK
-                        checkoutFileName(relativeFilePath, newCommit);
-                        stageController.add(fileInCWD, headCommit);
-                        /// addFileToStage also OK
-                    }
-                }
             }
+//            else {
+//                if (setsOfSplitData.contains(relativeFilePath)) {
+//                    if (setsOfNewData.contains(relativeFilePath)) {
+//                        /// new has it;ancestor has it;untracked file
+//                        /// will not happen
+//                    } else {
+//                        /// new not it;ancestor has it;untracked file
+//                        /// will not happen
+//                    }
+//                } else {
+//                    if (setsOfNewData.contains(relativeFilePath)) {
+//                        /// new has it;ancestor not it;untracked file
+//                        /// 签出并暂存
+//                        /// OK
+//                        checkoutFileName(relativeFilePath, newCommit);
+//                        stageController.add(fileInCWD, headCommit);
+//                        /// addFileToStage also OK
+//                    }
+//                }
+//            }
+
+            /// NOTICE: already deal with, only left new files for add
+            dealed.add(relativeFilePath);
+        }
+
+//        message("%s", setsOfNewData.toString());
+        for (final String fileRelateStr : setsOfNewData) {
+            if (dealed.contains(fileRelateStr)) {
+                continue;
+            }
+            final MetaData newData = newCommit.getMetaDataByFilename(fileRelateStr);
+            final MetaData splitData = splitPoint.getMetaDataByFilename(fileRelateStr);
+
+            if (splitData != null && newData != null && splitData.getSHA1().equals(newData.getSHA1())) {
+                ///
+                continue;
+            }
+            checkoutFileName(fileRelateStr, newCommit);
+            stageController.add(Utils.join(CWD, fileRelateStr), headCommit);
+        }
+
+        if (isConflict) {
+            message("Encountered a merge conflict.");
+            System.exit(0);
+        } else {
+            final String messageInfo =
+                    String.format("Merged %s into %s.",
+                            newBranchForMerge.getBranchName(),
+                            curBranch.getBranchName());
+            Commit mergeRes = headCommit.produceChildCommit(stageController, messageInfo);
+            mergeRes.addMergeParent(newCommit.getFullID());
+
+            mergeRes.save();
+            curBranch.updateCommitTo(mergeRes);
+            Repository.updateHEADCommitTo(mergeRes);
         }
 
 
@@ -703,5 +751,22 @@ public class Repository {
 //        或者一个文件的内容发生了改变，而另一个文件被删除；
 //        或者该文件在分割点时不存在，但在给定分支和当前分支中具有不同的内容。
         /// TODO: 暂存冲突文件，并打印冲突信息
+        MetaData headMetaData = headCommit.getMetaDataByFilename(relativeFilePath);
+        MetaData newMetaData = newCommit.getMetaDataByFilename(relativeFilePath);
+        StringBuilder sb = new StringBuilder("<<<<<<< HEAD\n");
+        if (headMetaData == null) {
+            final String newContext = Utils.readContentsAsString(newMetaData.getFilePathOfBlob());
+            sb.append("=======\n").append(newContext).append(">>>>>>>\n");
+        } else if (newMetaData == null) {
+            final String headContext = Utils.readContentsAsString(headMetaData.getFilePathOfBlob());
+            sb.append(headContext).append("=======\n").append(">>>>>>>\n");
+        } else {
+            final String newContext = Utils.readContentsAsString(newMetaData.getFilePathOfBlob());
+            final String headContext = Utils.readContentsAsString(headMetaData.getFilePathOfBlob());
+            sb.append(headContext).append("=======\n").append(newContext).append(">>>>>>>\n");
+        }
+
+        final File conflictFile = Utils.join(CWD, relativeFilePath);
+        Utils.writeContents(conflictFile, sb.toString());
     }
 }

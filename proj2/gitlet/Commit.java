@@ -25,6 +25,7 @@ public class Commit implements  Dumpable {
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided one example for `message`.
      */
+    private static final Commit init = Commit.createInitCommit();
 
     public static final File COMMIT_AREA = Utils.join(Repository.GITLET_DIR, "commits");
     /**
@@ -44,6 +45,8 @@ public class Commit implements  Dumpable {
      * The message of this Commit.
      */
     private String message;
+
+    private int layer;
 
     /**
      * String Repository.getRelativePathWitCWD(addFile),相对于CWD或者stages的相对路径
@@ -73,12 +76,50 @@ public class Commit implements  Dumpable {
         return commits;
     }
 
+    public static Commit findMergeBase(Commit commit1, Commit commit2) {
+        Map<Commit, Integer> depthMap1 = getDepthMap(commit1);
+        Map<Commit, Integer> depthMap2 = getDepthMap(commit2);
+
+        Set<Commit> commonAncestors = new HashSet<>(depthMap1.keySet());
+        commonAncestors.retainAll(depthMap2.keySet());
+
+        if (commonAncestors.isEmpty()) {
+            return null; // 没有公共祖先
+        }
+
+        // 找到距离两个提交最近的公共祖先（按深度之和最小）
+        return commonAncestors.stream()
+                .min(Comparator.comparingInt(commit -> depthMap1.get(commit) + depthMap2.get(commit)))
+                .orElse(null);
+    }
+
+    private static Map<Commit, Integer> getDepthMap(Commit commit) {
+        Map<Commit, Integer> depthMap = new HashMap<>();
+        Queue<Commit> queue = new LinkedList<>();
+        queue.add(commit);
+        depthMap.put(commit, 0);
+
+        while (!queue.isEmpty()) {
+            Commit current = queue.poll();
+            if (current.parents == null) continue;
+            for (final String parentID : current.parents) {
+                Commit parent = Commit.loadCommitByID(parentID);
+                if (!depthMap.containsKey(parent)) {
+                    depthMap.put(parent, depthMap.get(current) + 1);
+                    queue.add(parent);
+                }
+            }
+        }
+
+        return depthMap;
+    }
+
     /**
      * fine the common ancestor of A and B
      * @return  the common ancestor of A and B
      */
     public static Commit findSplitPoint(Commit A, Commit B) {
-        /// TODO
+        return findMergeBase(A, B);
     }
 
     /// metadata TODO
@@ -149,11 +190,11 @@ public class Commit implements  Dumpable {
     static Commit createInitCommit() {
         Map<String, MetaData> tidyDataSet = new TreeMap<>();
         return Commit.createCommit(
-                "initial commit", 0, null, tidyDataSet);
+                "initial commit", 0, null, tidyDataSet, 0);
     }
 
     /// 根据提供的信息返回关联好的commit
-    static Commit createCommit(final String messageT, final long timeT, final List<String> parentsT, final Map<String, MetaData> datas) {
+    static Commit createCommit(final String messageT, final long timeT, final List<String> parentsT, final Map<String, MetaData> datas, final int layerDepth) {
         Commit ct = new Commit();
         ct.parents = (parentsT == null ? null : new ArrayList<>(parentsT));
         ct.timeStamp = timeT;
@@ -190,7 +231,7 @@ public class Commit implements  Dumpable {
 
 //        Utils.message("\n%d \"%s\" %s\n ", timeT, messageInfo, cloneMetaData.toString());
 
-        return Commit.createCommit(messageInfo, timeT, parentsT, cloneMetaData);
+        return Commit.createCommit(messageInfo, timeT, parentsT, cloneMetaData, layer + 1);
     }
 
     public String getFullID() {
@@ -199,6 +240,14 @@ public class Commit implements  Dumpable {
 
     public String getMessage() {
         return message;
+    }
+
+    public int getDepth() {
+        return layer;
+    }
+
+    public void addMergeParent(final String mergeParentID) {
+        this.parents.add(mergeParentID);
     }
 
     /**
@@ -215,7 +264,7 @@ public class Commit implements  Dumpable {
             /// 是 Merge ， 加上Merge信息
             sb.append("Merge:");
             for (String pareID : parents) {
-                sb.append(" ").append(pareID);
+                sb.append(" ").append(pareID, 0, 7);
             }
             sb.append("\n");
         }
@@ -314,26 +363,27 @@ public class Commit implements  Dumpable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final Commit other = (Commit) o;
-        boolean same = this.timeStamp == other.timeStamp
-                && this.message.equals(other.message)
-                && this.id.equals(other.id);
-        if (!same) return false;
-        same = (this.parents == null && other.parents == null) || (this.parents.size() == other.parents.size());
-        if (!same) return false;
-        for (int i = 0, len = this.parents.size(); i < len; i++) {
-            if (!this.parents.get(i).equals(other.parents.get(i))) {
-                return false;
-            }
-        }
-        same = (this.metadataMap == null && other.metadataMap == null) || (this.metadataMap.size() == other.metadataMap.size());
-        if (!same) return false;
-        for (String key : this.metadataMap.keySet()) {
-            if (!this.metadataMap.get(key).equals(other.metadataMap.get(key))) {
-                return false;
-            }
-        }
-
-        return true;
+//        boolean same = this.timeStamp == other.timeStamp
+//                && this.message.equals(other.message)
+//                && this.id.equals(other.id);
+//        if (!same) return false;
+//        same = (this.parents == null && other.parents == null) || (this.parents.size() == other.parents.size());
+//        if (!same) return false;
+//        for (int i = 0, len = this.parents.size(); i < len; i++) {
+//            if (!this.parents.get(i).equals(other.parents.get(i))) {
+//                return false;
+//            }
+//        }
+//        same = (this.metadataMap == null && other.metadataMap == null) || (this.metadataMap.size() == other.metadataMap.size());
+//        if (!same) return false;
+//        for (String key : this.metadataMap.keySet()) {
+//            if (!this.metadataMap.get(key).equals(other.metadataMap.get(key))) {
+//                return false;
+//            }
+//        }
+//
+//        return true;
+        return this.id.equals(other.id);
     }
 
     @Override
