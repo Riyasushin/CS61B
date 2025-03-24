@@ -9,11 +9,10 @@ import static gitlet.Branch.BRANCH_AREA;
 import static gitlet.Commit.COMMIT_AREA;
 import static gitlet.Utils.*;
 
-// TODO: any imports you need here
 
 /**
  * Represents a gitlet repository.
- *  TODO: It's a good idea to give a description here of what else this Class
+ *  It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
  * @author RiJoshin
@@ -38,7 +37,7 @@ public class Repository {
     /**
      * 本仓库的所有的branch
      */
-    // TODO: remote的怎么办
+    // ODO: remote的怎么办
     private List<Branch> branches;
     /**
      * 缓存区
@@ -63,10 +62,9 @@ public class Repository {
     public static final File CUR_BRANCH = Utils.join(GITLET_DIR, "CUR_BRANCH");
 
 
-    /* TODO: fill in the rest of this class. */
     public static boolean hasInited() {
         return GITLET_DIR.exists() && HEAD_FILE.exists()
-                && CUR_BRANCH.exists() && Stage.stagesDir.exists() && Stage.STAGE_FILE.exists()
+                && CUR_BRANCH.exists() && Stage.STAGESDIR.exists() && Stage.STAGE_FILE.exists()
                 && COMMIT_AREA.exists() && BRANCH_AREA.exists();
     }
 
@@ -77,29 +75,33 @@ public class Repository {
     private static boolean setupDirStruture() {
         /// branches
         if (!BRANCH_AREA.exists()) {
-            if (!BRANCH_AREA.mkdir())
+            if (!BRANCH_AREA.mkdir()) {
                 return false;
+            }
         }
         /// commits
         if (!COMMIT_AREA.exists()) {
-            if (!COMMIT_AREA.mkdir())
+            if (!COMMIT_AREA.mkdir()) {
                 return false;
+            }
         }
 
-        if (!MetaData.BLOB_PATH.exists()) {
-            if (!MetaData.BLOB_PATH.mkdir())
+        if (!MetaData.BLOBPATH.exists()) {
+            if (!MetaData.BLOBPATH.mkdir()) {
                 return false;
+            }
         }
 
         /// objects
-        if (!MetaData.BLOB_PATH.exists()) {
-            if (!MetaData.BLOB_PATH.mkdir())
+        if (!MetaData.BLOBPATH.exists()) {
+            if (!MetaData.BLOBPATH.mkdir()) {
                 return false;
+            }
         }
 
         /// stage
-        if (!Stage.stagesDir.exists()) {
-            if (!Stage.stagesDir.mkdir()) {
+        if (!Stage.STAGESDIR.exists()) {
+            if (!Stage.STAGESDIR.mkdir()) {
                 return false;
             }
         }
@@ -112,7 +114,7 @@ public class Repository {
         headCommit = Commit.createInitCommit();
         headCommit.save();
         updateHEADCommitTo(headCommit);
-        return true; /// 似乎没有必要这个 TODO
+        return true; /// 似乎没有必要这个
     }
 
     private static boolean setupBranch() {
@@ -142,7 +144,6 @@ public class Repository {
      * 从 .gitlet 文件夹中读取信息，初始化文件
      */
     public static void loadRepository() {
-        /// TODO: 设计下，要什么再加载什么，所以
 
         curBranch = readObject(CUR_BRANCH, Branch.class);
 
@@ -180,12 +181,7 @@ public class Repository {
         stageController.add(curFilePosition, headCommit);
     }
 
-    private static Commit getCommitRecur(String Filter) {
-        /// TODO
-        return null;
-    }
-
-    public static void log_status() {
+    public static void logStatus() {
 
         /// branches
         System.out.println("=== Branches ===");
@@ -223,25 +219,11 @@ public class Repository {
 
         /// modifications not staged
         System.out.println("=== Modifications Not Staged For Commit ===");
-
-//        final Set<File> removedNotStaged  = stageController.getRemovedNotStaged();
-//        for (File f : removedNotStaged) {
-//            message(f.getName() + " (deleted)");
-//        }
-//
-//        final Set<File> modifiedNotStaged = stageController.getModifiedNotStaged();
-//        for (File f : modifiedNotStaged) {
-//            message(f.getName() + " (modified)");
-//        }
         System.out.print("\n");
 
 
         /// untracked files
         System.out.println("=== Untracked Files ===");
-//        final Set<File> untracked = stageController.getUntracked();
-//        for (File f : untracked) {
-//            message(f.getName());
-//        }
         System.out.print("\n");
 
     }
@@ -256,13 +238,12 @@ public class Repository {
 
     }
 
-    static void log_firstParents() {
-        /// TODO
+    static void logFirstParents() {
         logOneRecurisive(headCommit);
     }
 
 
-    static void global_log() {
+    static void globalLog() {
         Set<File> allCommitsID = Commit.getAllCommits();
         for (final File id : allCommitsID) {
             Commit cmt = Commit.loadCommitByID(id.getName());
@@ -297,8 +278,6 @@ public class Repository {
 
     public static void updateHEADCommitTo(final Commit child) {
         /// update HEAD to Child
-//        child.dump();
-//        headCommit.dump();
         child.save();
         headCommit = child;
         /// saveHEAD
@@ -352,7 +331,7 @@ public class Repository {
 
         if (headCommit.findByName(curFilePath)) {
             /// 在commit中有
-            /// remove it from the working directory, 这一步被stageArea处理了 TODO
+            /// remove it from the working directory, 这一步被stageArea处理了
             stageController.addToRemove(curFilePath);
             if (curFilePath.exists()) {
                 curFilePath.delete();
@@ -371,7 +350,6 @@ public class Repository {
     /* 一些工具方法 */
 
     /**
-     * TODO  和我想的结果不一样，得去重写，我想要的不是变成../../..这种，是只保留相对路径
      * 这算一个核心算法，注意
      * @param filePath 一个在CWD中的文件的File信息
      * @return filePath 文件和CWD的相对路径的String值
@@ -394,11 +372,9 @@ public class Repository {
 
         stageController.checkStatus(headCommit, CWD);
 
-//        if (newBranch.getBranchName().equals("master")) {
-//            message("%s\n%s\n%s\n%s\n", (filesBeOverwrittedHasCommited(newBranch, CWD) ? "Y" : "N"), stageController.getModifiedFiles(), stageController.getRemovedFiles(), stageController.getAddedFiles());
-//        }
-        /// 未被跟踪，并且会被签出覆盖!!! TODO  0323
-        if (stageController.canCheckoutBranch() && filesBeOverwrittedHasCommited(newBranch.getCommitPointed(), CWD)) { /// HARD!!
+        /// 未被跟踪，并且会被签出覆盖!!!
+        if (stageController.canCheckoutBranch()
+                && filesBeOverwrittedHasCommited(newBranch.getCommitPointed(), CWD)) { /// HARD!!
 
 
 
@@ -410,7 +386,7 @@ public class Repository {
             curBranch = newBranch;
             updateHEADCommitTo(curBranch.getCommitPointed());
 
-            Utils.ClearDir(CWD);
+            Utils.clearDir(CWD);
             curBranch.rollBack(CWD);
 
             stageController.clearTotally();
@@ -423,37 +399,27 @@ public class Repository {
     /**
      *
      * @param newCommit the commit of newBranch checking with
-     * @param WorkingDir cur CWD
+     * @param workingDir cur CWD
      * @return true if all files are overwritten and commited
      */
-    private static boolean filesBeOverwrittedHasCommited(final Commit newCommit, final File WorkingDir) {
-        File[] curFiles = WorkingDir.listFiles();
+    private static boolean filesBeOverwrittedHasCommited(final Commit newCommit, final File workingDir) {
+        File[] curFiles = workingDir.listFiles();
 
-//        if (newBranch.getBranchName().equals("master")) {
-//            message("\n");
-//            for (File curFile : curFiles) {
-//                message("%s", curFile.toString());
-//            }
-//            log_firstParents();
-//            message("\n");
-//
-//        }
+
 
         for (File curFile : curFiles) {
             if (curFile.getName().equals(".gitlet")) {
                 continue;
             }
             if (curFile.isFile()) {
-//                filesOverWritted(Strs)
                 final String fileRelativePath = Repository.getRelativePathWitCWD(curFile);
                 MetaData metaDataOfBranch = newCommit.getMetaDataByFilename(fileRelativePath);
                 if (metaDataOfBranch != null) {
                     /// will be overwrite
                     MetaData commitData = headCommit.getMetaDataByFilename(fileRelativePath);
                     final String sha1Cur = Utils.sha1(curFile);
-                    if (! (commitData != null && commitData.getSHA1().equals(sha1Cur))) {
+                    if (!(commitData != null && commitData.getSHA1().equals(sha1Cur))) {
                         /// not commited
-                    /// HARD type a ugly ! and ......
                         return false;
                     }
                 }
@@ -496,7 +462,6 @@ public class Repository {
         }
 
         final File backFile = fileData.getFilePathOfBlob();
-//        Utils.message(backFile.getAbsolutePath());
         final File distFile = Utils.join(CWD, fileRelativePath);
         Utils.moveOroverwriteFileFromSrcToDist(backFile, distFile);
 
@@ -509,8 +474,8 @@ public class Repository {
         Path fileAbsPath = filePath.toPath().toAbsolutePath();
 
         // 计算相对路径（若路径合法且在同一文件系统）
-        if (cwdPath.getRoot() != null &&
-                cwdPath.getRoot().equals(fileAbsPath.getRoot())) {
+        if (cwdPath.getRoot() != null
+                && cwdPath.getRoot().equals(fileAbsPath.getRoot())) {
             return cwdPath.relativize(fileAbsPath).toString();
         } else {
             // 若跨文件系统，返回绝对路径
@@ -617,8 +582,6 @@ public class Repository {
         final Commit newCommit = newBranchForMerge.getCommitPointed();
         boolean isConflict = false;
 
-//        message("%s\n", splitPoint.getMessage());
-//        message("%s\n", fullNameFilesInCWD.toString());
         for (final String fileName : fullNameFilesInCWD) {
             final String relativeFilePath = Repository.getRelativePathWitCWD(new File(fileName));
             final File fileInCWD = Utils.join(CWD, relativeFilePath);
@@ -633,13 +596,8 @@ public class Repository {
                         final String curSHA1 = headCommit.getMetaDataByFilename(relativeFilePath).getSHA1();
                         final String newSHA1 = newCommit.getMetaDataByFilename(relativeFilePath).getSHA1();
                         final String splitSHA1 = splitPoint.getMetaDataByFilename(relativeFilePath).getSHA1();
-                        if (curSHA1.equals(newSHA1)) {
-                            /// 两个文件现在具有相同的内容
-                            /// OK
-                        } else {
-                            if (newSHA1.equals(splitSHA1)) {
-                                /// OK
-                            } else {
+                        if (!curSHA1.equals(newSHA1)) {
+                            if (!newSHA1.equals(splitSHA1)) {
                                 if (curSHA1.equals(splitSHA1)) {
                                     /// OK
                                     checkoutFileName(relativeFilePath, newCommit);
@@ -671,42 +629,19 @@ public class Repository {
                         /// OK
                         final String curSHA1 = headCommit.getMetaDataByFilename(relativeFilePath).getSHA1();
                         final String newSHA1 = newCommit.getMetaDataByFilename(relativeFilePath).getSHA1();
-                        if (newSHA1.equals(curSHA1)) {
-                            /// same
-                            /// OK
-                        } else {
+                        if (!newSHA1.equals(curSHA1)) {
                             conflict(relativeFilePath, headCommit, newCommit);
                             isConflict = true;
                         }
                     }
                 }
             }
-//            else {
-//                if (setsOfSplitData.contains(relativeFilePath)) {
-//                    if (setsOfNewData.contains(relativeFilePath)) {
-//                        /// new has it;ancestor has it;untracked file
-//                        /// will not happen
-//                    } else {
-//                        /// new not it;ancestor has it;untracked file
-//                        /// will not happen
-//                    }
-//                } else {
-//                    if (setsOfNewData.contains(relativeFilePath)) {
-//                        /// new has it;ancestor not it;untracked file
-//                        /// 签出并暂存
-//                        /// OK
-//                        checkoutFileName(relativeFilePath, newCommit);
-//                        stageController.add(fileInCWD, headCommit);
-//                        /// addFileToStage also OK
-//                    }
-//                }
-//            }
+
 
             /// NOTICE: already deal with, only left new files for add
             dealed.add(relativeFilePath);
         }
 
-//        message("%s", setsOfNewData.toString());
         for (final String fileRelateStr : setsOfNewData) {
             if (dealed.contains(fileRelateStr)) {
                 continue;
@@ -745,10 +680,6 @@ public class Repository {
      * @param newCommit new commit, the toMergeCommit
      */
     private static void conflict(String relativeFilePath, Commit headCommit, Commit newCommit) {
-//        两个文件的内容都发生了改变，且与其他文件不同；
-//        或者一个文件的内容发生了改变，而另一个文件被删除；
-//        或者该文件在分割点时不存在，但在给定分支和当前分支中具有不同的内容。
-        /// TODO: 暂存冲突文件，并打印冲突信息
         MetaData headMetaData = headCommit.getMetaDataByFilename(relativeFilePath);
         MetaData newMetaData = newCommit.getMetaDataByFilename(relativeFilePath);
         StringBuilder sb = new StringBuilder("<<<<<<< HEAD\n");

@@ -77,7 +77,7 @@ class Utils {
      * @return
      */
     static String sha1(final File filepath) {
-        return Utils.sha1( Utils.readContentsAsString(filepath));
+        return Utils.sha1(Utils.readContentsAsString(filepath));
     }
 
     /* FILE DELETION */
@@ -86,7 +86,7 @@ class Utils {
      *  if FILE was deleted, and false otherwise.  Refuses to delete FILE
      *  and throws IllegalArgumentException unless the directory designated by
      *  FILE also contains a directory named .gitlet. */
-    static boolean restrictedDelete_USER(File file) {
+    static boolean restrictedDeleteUSER(File file) {
         if (!(new File(file.getParentFile(), ".gitlet")).isDirectory()) {
             throw new IllegalArgumentException("not .gitlet working directory");
         }
@@ -103,7 +103,6 @@ class Utils {
 
         while (currentDir != null) {
             File gitletDir = new File(currentDir, ".gitlet");
-//            System.out.println("Checking directory: " + gitletDir.getAbsolutePath());
             if (gitletDir.isDirectory()) {
                 gitletFound = true;
                 break;
@@ -183,7 +182,7 @@ class Utils {
 
     /** Return an object of type T read from FILE, casting it to EXPECTEDCLASS.
      *  Throws IllegalArgumentException in case of problems. */
-    static <T extends Serializable> T readObject(File file,
+    static<T extends Serializable> T readObject(File file,
                                                  Class<T> expectedClass) {
         try {
             ObjectInputStream in =
@@ -279,7 +278,7 @@ class Utils {
 
     /**
      * 从sourceRoot/relativePath 复制到 targetRoot/relativePath
-     * 这是覆盖，如果有，先删除再复制 TODO
+     * 这是覆盖，如果有，先删除再复制 TOD
      * @param sourceRoot dir
      * @param targetRoot dir
      * @param relativePath 相对于sourceRoot的相对路径
@@ -298,7 +297,8 @@ class Utils {
         try {
             Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            message("Fail in copy file from root %s to root %s, with relative path: %s", sourceRoot, targetRoot, relativePath);
+            message("Fail in copy file from root %s to root %s, with relative path: %s",
+                        sourceRoot, targetRoot, relativePath);
             throw new RuntimeException(e);
         }
     }
@@ -315,7 +315,6 @@ class Utils {
         try {
             // Move the file from src to dist, overwriting if it already exists
             Files.move(srcPath, distPath, StandardCopyOption.REPLACE_EXISTING);
-//            System.out.println("File moved and overwritten successfully.");
         } catch (IOException e) {
             System.err.println("An error occurred while moving the file: " + e.getMessage());
         }
@@ -333,7 +332,6 @@ class Utils {
         try {
             // Copy the file from src to dist, overwriting if it already exists
             Files.copy(srcPath, distPath, StandardCopyOption.REPLACE_EXISTING);
-//            System.out.println("File copied and overwritten successfully.");
         } catch (IOException e) {
             System.err.println("An error occurred while copying the file: " + e.getMessage());
         }
@@ -351,7 +349,7 @@ class Utils {
         writeObject(filepath, obj);
     }
 
-    public static void ClearDir(File stagesDir) {
+    public static void clearDir(File stagesDir) {
         // 检查目录是否存在
         if (!stagesDir.exists()) {
             return;
@@ -363,7 +361,7 @@ class Utils {
                     continue;
                 }
                 if (file.isDirectory()) {
-                    ClearDir(file);
+                    clearDir(file);
                     file.delete();
                 } else {
                     file.delete();
@@ -389,7 +387,7 @@ class Utils {
 
     /* TIME FORMATER */
 
-    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy Z");
+    private static final DateTimeFormatter FORMMATER = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy Z");
 
     /**
      *
@@ -399,14 +397,12 @@ class Utils {
     static String unixTimeFormatter(long timestamp) {
         Instant ins = Instant.ofEpochMilli(timestamp);
         ZonedDateTime zonedDateTime = ins.atZone(ZoneId.of("America/Los_Angeles"));
-        return formatter.format(zonedDateTime);
+        return FORMMATER.format(zonedDateTime);
     }
 
     public static int findMaxNumber(List<String> stringList) {
         // 使用流操作将字符串列表转换为整数流并找到最大值
-        OptionalInt maxOptional = stringList.stream()
-                .mapToInt(Integer::parseInt) // 将每个字符串解析为整数
-                .max(); // 找到最大值
+        OptionalInt maxOptional = stringList.stream().mapToInt(Integer::parseInt).max(); // 找到最大值
 
         // 如果找到最大值，返回它；否则返回一个默认值（比如 0）
         return maxOptional.orElse(0);

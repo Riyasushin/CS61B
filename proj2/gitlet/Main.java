@@ -38,7 +38,6 @@ public class Main {
             switch (firstArg) {
 
                 case "add": {
-                    // TODO: handle the `add [filename]` command
                     GitletException.checkOfOperands(args.length, 2);
                     final String fileName4Add = args[1];
 
@@ -59,13 +58,13 @@ public class Main {
                 }
                 case "log": {
                     GitletException.checkOfOperands(args.length, 1);
-                    Repository.log_firstParents();
+                    Repository.logFirstParents();
 
                     break;
                 }
                 case "global-log": {
                     GitletException.checkOfOperands(args.length, 1);
-                    Repository.global_log();
+                    Repository.globalLog();
 
                     break;
                 }
@@ -77,7 +76,7 @@ public class Main {
                 }
                 case "status": {
                     GitletException.checkOfOperands(args.length, 1);
-                    Repository.log_status();
+                    Repository.logStatus();
 
                     break;
                 }
@@ -103,6 +102,11 @@ public class Main {
                                 System.exit(0);
                             }
                             Repository.checkoutFileName(args[2], Repository.getHeadCommit());
+                            break;
+                        }
+                        default: {
+                            message("Incorrect operands.");
+                            System.exit(0);
                             break;
                         }
                     }

@@ -1,16 +1,13 @@
 package gitlet;
 
-
 import java.io.File;
 import java.io.Serializable;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 public class Stage implements Serializable, Dumpable {
 
     public static final File STAGE_FILE = Utils.join(Repository.GITLET_DIR, "STAGE");
-    public static final File stagesDir = Utils.join(Repository.GITLET_DIR, "stages");
+    public static final File STAGESDIR = Utils.join(Repository.GITLET_DIR, "stages");
 
     private Set<File> inCommitAndStaged;
     private Set<File> notInCommitAndStaged;
@@ -39,7 +36,6 @@ public class Stage implements Serializable, Dumpable {
 
     @Override
     public void dump() {
-        /// TODO
     }
 
     /**
@@ -86,13 +82,12 @@ public class Stage implements Serializable, Dumpable {
      */
     public boolean removeFromStage(final File curFileWaitingRemoveFromStage) {
         final String fileRelativePathStr = Repository.getRelativePathWitCWD(curFileWaitingRemoveFromStage);
-        final File inStageFile = Utils.join(stagesDir, fileRelativePathStr);
+        final File inStageFile = Utils.join(STAGESDIR, fileRelativePathStr);
         if (inCommitAndStaged.contains(inStageFile) || notInCommitAndStaged.contains(inStageFile)) {
             /// currently staged for addition.
             inCommitAndStaged.remove(inStageFile);
             notInCommitAndStaged.remove(inStageFile);
             untracked.add(inStageFile);
-//            Utils.restrictedDelete(inStageFile);
 
             save();
             return true;
@@ -113,7 +108,7 @@ public class Stage implements Serializable, Dumpable {
     public void add(final File curFilePosition, final Commit headCommit) {
         final String fileRelativePathStr = Repository.getRelativePathWitCWD(curFilePosition);
         MetaData fileDataInCommit = headCommit.getMetaDataByFilename(fileRelativePathStr);
-        final File inStageFile = Utils.join(stagesDir, fileRelativePathStr);
+        final File inStageFile = Utils.join(STAGESDIR, fileRelativePathStr);
 
         modifiedNotStaged.remove(inStageFile);
         untracked.remove(inStageFile);
@@ -122,7 +117,6 @@ public class Stage implements Serializable, Dumpable {
             /// not in commit
             notInCommitAndStaged.add(inStageFile);
             Utils.copyFileFromSrcToDist(curFilePosition, inStageFile);
-//            Utils.message("add %s", inStageFile.getName());
         } else {
             /// in commit
             final String commitSHA1 = fileDataInCommit.getSHA1();
@@ -148,7 +142,7 @@ public class Stage implements Serializable, Dumpable {
      */
     public void addToRemove(final File curFilePath) {
         final String fileRelativePathStr = Repository.getRelativePathWitCWD(curFilePath);
-        final File inStageFile = Utils.join(stagesDir, fileRelativePathStr);
+        final File inStageFile = Utils.join(STAGESDIR, fileRelativePathStr);
         removed.add(inStageFile);
 
         save();
@@ -158,7 +152,7 @@ public class Stage implements Serializable, Dumpable {
         Iterator<File> iterator = setToCheck.iterator();
         while (iterator.hasNext()) {
             File fileInStage = iterator.next();
-            final String fileRelativePathStr = Repository.getRelativePathWit(fileInStage, stagesDir);
+            final String fileRelativePathStr = Repository.getRelativePathWit(fileInStage, STAGESDIR);
             final File fileInCWD = Utils.join(cwd, fileRelativePathStr);
 
             if (!fileInCWD.exists()) {
@@ -193,7 +187,7 @@ public class Stage implements Serializable, Dumpable {
         final Set<String> commitFileList = headCommit.getMetaDataNameList();
         for (final String relativePathStr : commitFileList) {
             if (!cwdNameList.contains(relativePathStr)) {
-                removedButNotStaged.add(Utils.join(stagesDir, relativePathStr));
+                removedButNotStaged.add(Utils.join(STAGESDIR, relativePathStr));
             }
         }
 
@@ -205,14 +199,14 @@ public class Stage implements Serializable, Dumpable {
     }
 
     public boolean canCommit() {
-        return !(inCommitAndStaged.isEmpty() && notInCommitAndStaged.isEmpty() && removed.isEmpty() );
+        return !(inCommitAndStaged.isEmpty() && notInCommitAndStaged.isEmpty() && removed.isEmpty());
     }
 
     /**
      * clear inCommitAndStaged and notInCommitAndStaged and removed
      */
     public void clearCommited() {
-        Utils.ClearDir(stagesDir);
+        Utils.clearDir(STAGESDIR);
         inCommitAndStaged.clear();
         notInCommitAndStaged.clear();
         removed.clear();

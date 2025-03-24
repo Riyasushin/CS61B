@@ -1,6 +1,5 @@
 package gitlet;
 
-// TODO: any imports you need here
 
 //import org.checkerframework.checker.units.qual.C;
 
@@ -12,20 +11,17 @@ import static gitlet.Utils.readObject;
 
 /**
  * Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
+ *  It's a good idea to give a description here of what else this Class
  *  does at a high level.
- *
  *  Commit is immutable!!!!!
  *  @author RiJoshin
  */
 public class Commit implements  Dumpable {
     /**
-     * TODO: add instance variables here.
      * List all instance variables of the Commit class here with a useful
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided one example for `message`.
      */
-    private static final Commit init = Commit.createInitCommit();
 
     public static final File COMMIT_AREA = Utils.join(Repository.GITLET_DIR, "commits");
     /**
@@ -55,7 +51,7 @@ public class Commit implements  Dumpable {
 
     /**
      * get all Commits
-     * @return
+     * @return a TreeSet of commit files
      */
     public static Set<File> getAllCommits() {
         Set<File> commits = new TreeSet<>();
@@ -88,9 +84,8 @@ public class Commit implements  Dumpable {
         }
 
         // 找到距离两个提交最近的公共祖先（按深度之和最小）
-        return commonAncestors.stream()
-                .min(Comparator.comparingInt(commit -> depthMap1.get(commit) + depthMap2.get(commit)))
-                .orElse(null);
+        return commonAncestors.stream().min(
+                Comparator.comparingInt(commit -> depthMap1.get(commit) + depthMap2.get(commit))).orElse(null);
     }
 
     private static Map<Commit, Integer> getDepthMap(Commit commit) {
@@ -101,7 +96,9 @@ public class Commit implements  Dumpable {
 
         while (!queue.isEmpty()) {
             Commit current = queue.poll();
-            if (current.parents == null) continue;
+            if (current.parents == null) {
+                continue;
+            }
             for (final String parentID : current.parents) {
                 Commit parent = Commit.loadCommitByID(parentID);
                 if (!depthMap.containsKey(parent)) {
@@ -122,7 +119,7 @@ public class Commit implements  Dumpable {
         return findMergeBase(A, B);
     }
 
-    /// metadata TODO
+    /// metadata
 
     /**
      * relative path (str) -> data
@@ -194,23 +191,23 @@ public class Commit implements  Dumpable {
     }
 
     /// 根据提供的信息返回关联好的commit
-    static Commit createCommit(final String messageT, final long timeT, final List<String> parentsT, final Map<String, MetaData> datas, final int layerDepth) {
+    static Commit createCommit(final String messageT, final long timeT,
+                               final List<String> parentsT, final Map<String, MetaData> datas,
+                               final int layerDepth) {
         Commit ct = new Commit();
         ct.parents = (parentsT == null ? null : new ArrayList<>(parentsT));
         ct.timeStamp = timeT;
         ct.message = (messageT == null? "" : messageT); /// 根据commit要求，一定不是null !
-//        if (!datas.isEmpty()) {
-//            Utils.message(datas.toString());
-//        }
         ct.metadataMap = Map.copyOf(datas);
+        ct.layer = layerDepth;
 
-        ct.id = Utils.sha1((ct.parents == null ? " " : ct.parents.toString()), String.valueOf(ct.timeStamp), ct.message, (ct.metadataMap == null ? " " : ct.metadataMap.toString()));
+        ct.id = Utils.sha1((ct.parents == null ? " " : ct.parents.toString()),
+                String.valueOf(ct.timeStamp), ct.message, (ct.metadataMap == null ? " " : ct.metadataMap.toString()));
         return ct;
     }
 
 
     public Commit produceChildCommit(final Stage stageStatus, final String messageInfo) {
-        /// TODO: 克隆父提交，根据Stage修改MetaData
         List<String> parentsT = new ArrayList<>();
         parentsT.add(this.id);
         Map<String, MetaData> cloneMetaData = new TreeMap<>(Map.copyOf(this.metadataMap));
@@ -219,17 +216,16 @@ public class Commit implements  Dumpable {
         final Set<File> modified = stageStatus.getModifiedFiles();
         /// 修改clone的结果，满足最新条件
         for (File addFile : added) {
-            cloneMetaData.put(Repository.getRelativePathWit(addFile, Stage.stagesDir), new MetaData(addFile, this));
+            cloneMetaData.put(Repository.getRelativePathWit(addFile, Stage.STAGESDIR), new MetaData(addFile, this));
         }
         for (File rmFile : removed) {
-            cloneMetaData.remove(Repository.getRelativePathWit(rmFile, Stage.stagesDir));
+            cloneMetaData.remove(Repository.getRelativePathWit(rmFile, Stage.STAGESDIR));
         }
         for (File mdFile : modified) {
-            cloneMetaData.put(Repository.getRelativePathWit(mdFile, Stage.stagesDir), new MetaData(mdFile, this));
+            cloneMetaData.put(Repository.getRelativePathWit(mdFile, Stage.STAGESDIR), new MetaData(mdFile, this));
         }
         long timeT = System.currentTimeMillis();
 
-//        Utils.message("\n%d \"%s\" %s\n ", timeT, messageInfo, cloneMetaData.toString());
 
         return Commit.createCommit(messageInfo, timeT, parentsT, cloneMetaData, layer + 1);
     }
@@ -240,10 +236,6 @@ public class Commit implements  Dumpable {
 
     public String getMessage() {
         return message;
-    }
-
-    public int getDepth() {
-        return layer;
     }
 
     public void addMergeParent(final String mergeParentID) {
@@ -284,8 +276,6 @@ public class Commit implements  Dumpable {
 
     @Override
     public void dump() {
-        // TODO
-//        Utils.message("\n %s \n %s \n", Utils.join(COMMIT_AREA, this.getFullID()).toString(), metadataMap.toString());
     }
 
     /**
@@ -297,7 +287,6 @@ public class Commit implements  Dumpable {
             commitFileSubDir.mkdirs();
         }
         final File realFile = Utils.join(commitFileSubDir, this.getFullID());
-//        System.out.println(realFile.toString());
         Utils.writeObjectToFileWithFileNotExistFix(realFile, this);
     }
 
@@ -320,7 +309,7 @@ public class Commit implements  Dumpable {
             }
         } else {
             final File commitFile = Utils.join(commitFileSubDir, id);
-            if (! commitFile.exists())  {
+            if (!commitFile.exists())  {
                 return null;
             }
             return readObject(commitFile, Commit.class);
@@ -361,29 +350,14 @@ public class Commit implements  Dumpable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final Commit other = (Commit) o;
-//        boolean same = this.timeStamp == other.timeStamp
-//                && this.message.equals(other.message)
-//                && this.id.equals(other.id);
-//        if (!same) return false;
-//        same = (this.parents == null && other.parents == null) || (this.parents.size() == other.parents.size());
-//        if (!same) return false;
-//        for (int i = 0, len = this.parents.size(); i < len; i++) {
-//            if (!this.parents.get(i).equals(other.parents.get(i))) {
-//                return false;
-//            }
-//        }
-//        same = (this.metadataMap == null && other.metadataMap == null) || (this.metadataMap.size() == other.metadataMap.size());
-//        if (!same) return false;
-//        for (String key : this.metadataMap.keySet()) {
-//            if (!this.metadataMap.get(key).equals(other.metadataMap.get(key))) {
-//                return false;
-//            }
-//        }
-//
-//        return true;
+
         return this.id.equals(other.id);
     }
 

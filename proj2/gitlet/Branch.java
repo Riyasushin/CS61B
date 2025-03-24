@@ -55,7 +55,6 @@ public class Branch implements Serializable, Dumpable {
      * @param headFilePath 要保存的文件夹的路径的File
      */
     public void saveTo(final File headFilePath) {
-        /// TODO: 把这个分支保存到文件中
         final File branchFile = Utils.join(Branch.BRANCH_AREA, branchName);
         Utils.writeObjectToFileWithFileNotExistFix(branchFile, this);
 
@@ -66,11 +65,11 @@ public class Branch implements Serializable, Dumpable {
 
     /**
      *
-     * @param BranchPath    完整的路径，应为不确定是cur还是什么
+     * @param branchPath    完整的路径，应为不确定是cur还是什么
      * @return  一个根据文件内容得到的Branch的对象
      */
-    public static Branch loadBranch(final File BranchPath) {
-        return Utils.readObject(BranchPath, Branch.class);
+    public static Branch loadBranch(final File branchPath) {
+        return Utils.readObject(branchPath, Branch.class);
     }
 
     public void markAsCurBranch() {
@@ -86,7 +85,6 @@ public class Branch implements Serializable, Dumpable {
      * @param workingDir CWD
      */
     public void rollBack(final File workingDir) {
-        /// TODO
         pointerTo.rollBack(workingDir);
 
 
@@ -107,6 +105,5 @@ public class Branch implements Serializable, Dumpable {
 
     @Override
     public void dump() {
-        // TODO
     }
 }

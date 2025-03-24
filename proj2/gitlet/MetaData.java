@@ -9,7 +9,7 @@ import java.util.List;
 /// HARD :: here Dumpable lost my time!!!
 public class MetaData implements Dumpable {
 
-    public static File BLOB_PATH = Utils.join(Repository.GITLET_DIR, "blob");
+    public static File BLOBPATH = Utils.join(Repository.GITLET_DIR, "blob");
 
     private int version;
     private String blobName;
@@ -29,8 +29,7 @@ public class MetaData implements Dumpable {
     }
 
     private void saveNewFileBlob() {
-        final File blobPath = Utils.join(BLOB_PATH, blobName, String.valueOf(version));
-//        Utils.message(blobPath.toString());
+        final File blobPath = Utils.join(BLOBPATH, blobName, String.valueOf(version));
         if (!blobPath.exists()) {
             blobPath.mkdirs();
         }
@@ -42,7 +41,7 @@ public class MetaData implements Dumpable {
     }
 
     public File getFilePathOfBlob() {
-        return Utils.join(BLOB_PATH, blobName, String.valueOf(version));
+        return Utils.join(BLOBPATH, blobName, String.valueOf(version));
     }
 
     /// 保证，new MetaData 都是需要新的blob的，以此减少判断
@@ -51,7 +50,7 @@ public class MetaData implements Dumpable {
         sourceFile = filepath;
         sha1ID = Utils.sha1(filepath);
 
-        final File blobDirPath = Utils.join(BLOB_PATH, blobName);
+        final File blobDirPath = Utils.join(BLOBPATH, blobName);
         int lastVersion = -1;
         if (blobDirPath.exists()) {
             List<String> oldVersions = Utils.plainFilenamesIn(blobDirPath);
@@ -61,7 +60,6 @@ public class MetaData implements Dumpable {
         }
 
         version = lastVersion + 1;
-//        System.out.print(filepath.toString());
         saveNewFileBlob();
     }
 
