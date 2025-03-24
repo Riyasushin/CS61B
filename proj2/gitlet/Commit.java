@@ -248,6 +248,7 @@ public class Commit implements  Dumpable {
 
     public void addMergeParent(final String mergeParentID) {
         this.parents.add(mergeParentID);
+        this.save();
     }
 
     /**

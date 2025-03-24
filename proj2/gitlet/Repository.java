@@ -571,6 +571,7 @@ public class Repository {
             message("Given branch is an ancestor of the current branch.");
             System.exit(0);
         } else if (splitPoint.equals(headCommit)) {
+            checkoutBranch(branchNameForMerge);
             message("Current branch fast-forwarded.");
             System.exit(0);
         }
@@ -723,19 +724,16 @@ public class Repository {
 
         if (isConflict) {
             message("Encountered a merge conflict.");
-            System.exit(0);
-        } else {
-            final String messageInfo =
-                    String.format("Merged %s into %s.",
+        }
+        final String messageInfo = String.format("Merged %s into %s.",
                             newBranchForMerge.getBranchName(),
                             curBranch.getBranchName());
-            Commit mergeRes = headCommit.produceChildCommit(stageController, messageInfo);
-            mergeRes.addMergeParent(newCommit.getFullID());
+        makeCommit(messageInfo);
+        headCommit.addMergeParent(newCommit.getFullID());
 
-            mergeRes.save();
-            curBranch.updateCommitTo(mergeRes);
-            Repository.updateHEADCommitTo(mergeRes);
-        }
+        Utils.writeObjectToFileWithFileNotExistFix(HEAD_FILE, headCommit);
+
+
 
 
     }
@@ -768,5 +766,7 @@ public class Repository {
 
         final File conflictFile = Utils.join(CWD, relativeFilePath);
         Utils.writeContents(conflictFile, sb.toString());
+
+        addFileToStage(relativeFilePath);
     }
 }

@@ -21,3 +21,12 @@ public class test {
 //        Utils.writeObjectToFileWithFileNotExistFix(realFile, Commit.createInitCommit());
     }
 }
+/*
+
+> log
+${COMMIT_LOG}
+===
+commit ${MASTER_HEAD}
+${ARBLINES}
+<<<*
+ */

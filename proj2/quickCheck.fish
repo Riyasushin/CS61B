@@ -36,15 +36,16 @@ cd testing
 # python3 tester.py samples/test41-no-command-err.in
 # python3 tester.py samples/test42-other-err.in
 
-#- python3 tester.py --verbose samples/test33-merge-no-conflicts.in
-python3 tester.py --verbose samples/test34-merge-conflicts.in
-# python3 tester.py samples/test35-merge-rm-conflicts.in
 #- python3 tester.py --verbose samples/test36-merge-err.in
-# python3 tester.py samples/test36-merge-parent2.in
+#- python3 tester.py --verbose samples/test33-merge-no-conflicts.in
 
-# python3 tester.py samples/test40-special-merge-cases.in
-# python3 tester.py samples/test43-criss-cross-merge.in
+python3 tester.py --verbose samples/test43-criss-cross-merge.in
 # python3 tester.py samples/test43-criss-cross-merge-b.in
+
 # python3 tester.py samples/test44-bai-merge.in
+# python3 tester.py --verbose samples/test36-merge-parent2.in
+# python3 tester.py --verbose samples/test40-special-merge-cases.in
+# python3 tester.py samples/test34-merge-conflicts.in
+# python3 tester.py samples/test35-merge-rm-conflicts.in
 
 cd ..
